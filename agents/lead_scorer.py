@@ -19,15 +19,23 @@ MeddpiccStatus = Literal["known", "partial", "unknown"]
 
 
 @dataclass(frozen=True, slots=True)
+class MeddpiccDimension:
+    status: MeddpiccStatus
+    evidence: str          # what we know (empty string if unknown)
+    gap: str               # what's still missing
+    question: str          # suggested discovery question for this dimension
+
+
+@dataclass(frozen=True, slots=True)
 class MeddpiccScore:
-    metrics: str
-    economic_buyer: str
-    decision_criteria: str
-    decision_process: str
-    paper_process: str
-    implicate_pain: str
-    champion: str
-    competition: str
+    metrics: MeddpiccDimension
+    economic_buyer: MeddpiccDimension
+    decision_criteria: MeddpiccDimension
+    decision_process: MeddpiccDimension
+    paper_process: MeddpiccDimension
+    implicate_pain: MeddpiccDimension
+    champion: MeddpiccDimension
+    competition: MeddpiccDimension
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,15 +96,22 @@ class RawEmail(BaseModel):
     received_at: str
 
 
+class MeddpiccDimensionModel(BaseModel):
+    status: MeddpiccStatus = "unknown"
+    evidence: str = ""
+    gap: str = ""
+    question: str = ""
+
+
 class MeddpiccModel(BaseModel):
-    metrics: MeddpiccStatus = "unknown"
-    economic_buyer: MeddpiccStatus = "unknown"
-    decision_criteria: MeddpiccStatus = "unknown"
-    decision_process: MeddpiccStatus = "unknown"
-    paper_process: MeddpiccStatus = "unknown"
-    implicate_pain: MeddpiccStatus = "unknown"
-    champion: MeddpiccStatus = "unknown"
-    competition: MeddpiccStatus = "unknown"
+    metrics: MeddpiccDimensionModel = Field(default_factory=MeddpiccDimensionModel)
+    economic_buyer: MeddpiccDimensionModel = Field(default_factory=MeddpiccDimensionModel)
+    decision_criteria: MeddpiccDimensionModel = Field(default_factory=MeddpiccDimensionModel)
+    decision_process: MeddpiccDimensionModel = Field(default_factory=MeddpiccDimensionModel)
+    paper_process: MeddpiccDimensionModel = Field(default_factory=MeddpiccDimensionModel)
+    implicate_pain: MeddpiccDimensionModel = Field(default_factory=MeddpiccDimensionModel)
+    champion: MeddpiccDimensionModel = Field(default_factory=MeddpiccDimensionModel)
+    competition: MeddpiccDimensionModel = Field(default_factory=MeddpiccDimensionModel)
 
 
 class ScoringResultModel(BaseModel):
@@ -167,7 +182,9 @@ class ScoringResultModel(BaseModel):
     def to_dataclass(self) -> ScoringResult:
         data = self.model_dump()
         meddpicc_data = data.pop("meddpicc")
-        data["meddpicc"] = MeddpiccScore(**meddpicc_data)
+        data["meddpicc"] = MeddpiccScore(
+            **{k: MeddpiccDimension(**v) for k, v in meddpicc_data.items()}
+        )
         return ScoringResult(**data)
 
 
@@ -244,12 +261,32 @@ class LeadScorer:
                 time.sleep(sleep_seconds)
 
     def _result_tool(self) -> dict[str, Any]:
-        meddpicc_status = {"type": "string", "enum": ["known", "partial", "unknown"]}
+        meddpicc_dimension = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "status": {"type": "string", "enum": ["known", "partial", "unknown"]},
+                "evidence": {
+                    "type": "string",
+                    "description": "What we know from the email — specific facts, quotes, or signals. Empty string if unknown.",
+                },
+                "gap": {
+                    "type": "string",
+                    "description": "What is still missing or unclear for this dimension.",
+                },
+                "question": {
+                    "type": "string",
+                    "description": "A specific discovery question the rep should ask to fill this gap.",
+                },
+            },
+            "required": ["status", "evidence", "gap", "question"],
+        }
         return {
             "name": "record_scoring_result",
             "description": (
                 "Return the fully scored and qualified lead object. "
-                "Include MEDDPICC assessment, use case classification, revenue estimation, "
+                "Include MEDDPICC assessment with per-dimension detail (evidence, gap, question), "
+                "use case classification, revenue estimation, "
                 "competitive analysis, and next best action for the rep. "
                 "The total_score must equal the sum of the five dimension scores."
             ),
@@ -311,14 +348,14 @@ class LeadScorer:
                         "type": "object",
                         "additionalProperties": False,
                         "properties": {
-                            "metrics": meddpicc_status,
-                            "economic_buyer": meddpicc_status,
-                            "decision_criteria": meddpicc_status,
-                            "decision_process": meddpicc_status,
-                            "paper_process": meddpicc_status,
-                            "implicate_pain": meddpicc_status,
-                            "champion": meddpicc_status,
-                            "competition": meddpicc_status,
+                            "metrics": meddpicc_dimension,
+                            "economic_buyer": meddpicc_dimension,
+                            "decision_criteria": meddpicc_dimension,
+                            "decision_process": meddpicc_dimension,
+                            "paper_process": meddpicc_dimension,
+                            "implicate_pain": meddpicc_dimension,
+                            "champion": meddpicc_dimension,
+                            "competition": meddpicc_dimension,
                         },
                         "required": [
                             "metrics", "economic_buyer", "decision_criteria",
@@ -446,7 +483,12 @@ EXPANSION POTENTIAL: how could a pilot grow? Think land-and-expand.
 PART 4: MEDDPICC QUALIFICATION
 ═══════════════════════════════════════════════════
 
-For each letter, assess what the email tells us:
+For each letter, provide a structured assessment with FOUR fields:
+  status: "known" (clearly stated), "partial" (hinted at), "unknown" (not mentioned)
+  evidence: what the email tells us — cite specifics (quotes, facts, signals). Empty string if nothing.
+  gap: what is still missing or unclear for this dimension.
+  question: one specific discovery question the rep should ask to fill this gap.
+
 - M (Metrics): Do they mention measurable goals, KPIs, ROI expectations?
 - E (Economic Buyer): Is the sender the budget holder? Did they reference one?
 - D (Decision Criteria): What are they evaluating on? Performance, price, security?
@@ -456,9 +498,7 @@ For each letter, assess what the email tells us:
 - C (Champion): Does the sender seem like an internal advocate for Claude?
 - C (Competition): Are other vendors being evaluated?
 
-Values: "known" (clearly stated), "partial" (hinted at), "unknown" (not mentioned)
-
-DISCOVERY QUESTIONS: 3-5 questions the rep should ask to fill MEDDPICC gaps.
+DISCOVERY QUESTIONS: 3-5 additional general questions the rep should ask.
 These should be specific, not generic. Reference what we know and what's missing.
 
 NEXT BEST ACTION: one concrete sentence. What should the rep do RIGHT NOW?

@@ -122,6 +122,27 @@ def get_research_one(company_key: str) -> dict | None:
 
 # --- Briefings ---
 
+# --- LinkedIn ---
+
+def get_linkedin_all() -> list[dict]:
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM contact_linkedin ORDER BY updated_at DESC"
+        ).fetchall()
+    return [_row_to_dict(r) for r in rows]
+
+
+def get_linkedin_one(sender_email: str) -> dict | None:
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM contact_linkedin WHERE sender_email = ?",
+            (sender_email,),
+        ).fetchone()
+    return _row_to_dict(row) if row else None
+
+
+# --- Briefings ---
+
 def get_briefings() -> list[dict]:
     with _conn() as conn:
         rows = conn.execute(

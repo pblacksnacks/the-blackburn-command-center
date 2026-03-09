@@ -121,6 +121,33 @@ CREATE INDEX IF NOT EXISTS idx_company_research_researched_at
     ON company_research(researched_at);
 
 -- ---------------------------------------------------------------------------
+-- LINKEDIN AGENT table
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS contact_linkedin (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_email TEXT NOT NULL UNIQUE,
+    company_key TEXT,
+    full_name TEXT,
+    linkedin_url TEXT,
+    headline TEXT,
+    location TEXT,
+    current_title TEXT,
+    current_company TEXT,
+    summary TEXT,
+    experience_json TEXT NOT NULL DEFAULT '[]',
+    source_urls_json TEXT NOT NULL DEFAULT '[]',
+    searched_at TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    raw_model_json TEXT,
+    FOREIGN KEY (sender_email) REFERENCES leads(sender_email),
+    FOREIGN KEY (company_key) REFERENCES company_research(company_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_linkedin_company_key
+    ON contact_linkedin(company_key);
+
+-- ---------------------------------------------------------------------------
 -- BRIEFING AGENT table
 -- ---------------------------------------------------------------------------
 

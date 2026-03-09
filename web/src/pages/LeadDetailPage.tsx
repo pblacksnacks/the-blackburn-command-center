@@ -1,9 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Building2, User, Target, Lightbulb } from 'lucide-react';
-import { fetchLead, type Lead } from '../api';
+import {
+  ArrowLeft, Mail, User, Target, Lightbulb, Linkedin, ExternalLink,
+  Loader2, Search, Briefcase, MapPin, Calendar, RefreshCw,
+} from 'lucide-react';
+import {
+  fetchLead, fetchLinkedInProfile, searchLinkedIn, fetchLinkedInSearchStatus,
+  fetchResearch,
+  type Lead, type ContactLinkedIn, type CompanyResearch,
+} from '../api';
 import GradeBadge from '../components/GradeBadge';
 import MeddpiccBadge from '../components/MeddpiccBadge';
+import OrgPowerMap from '../components/OrgPowerMap';
+import DepartmentHeatMap from '../components/DepartmentHeatMap';
 
 const formatAcv = (v: number | null) => (v ? `$${v.toLocaleString()}` : '--');
 const formatLabel = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -21,18 +30,171 @@ const ScoreBar = ({ label, value, max }: { label: string; value: number; max: nu
   </div>
 );
 
+/* ── Calendar URL builder ─────────────────────────────────────── */
+
+function buildCalendarUrl(lead: Lead): string {
+  const title = `Discovery Call: ${lead.company_name || 'Prospect'} - ${lead.sender_name || 'Contact'}`;
+
+  // Next weekday at 10:00 AM local time, 30-minute slot
+  const start = new Date();
+  start.setDate(start.getDate() + 1);
+  const day = start.getDay();
+  if (day === 0) start.setDate(start.getDate() + 1);
+  if (day === 6) start.setDate(start.getDate() + 2);
+  start.setHours(10, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setMinutes(end.getMinutes() + 30);
+
+  const pad = (d: Date) => {
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    const h = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${y}${mo}${da}T${h}${mi}00`;
+  };
+
+  const questions = (lead.discovery_questions_json || [])
+    .slice(0, 3)
+    .map((q, i) => `${i + 1}. ${q}`)
+    .join('\n');
+
+  const description = [
+    'Next Best Action:',
+    lead.next_best_action,
+    '',
+    'Discovery Questions:',
+    questions,
+  ].join('\n');
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    dates: `${pad(start)}/${pad(end)}`,
+    details: description,
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+/* ── Employee estimate helper ─────────────────────────────────── */
+
+function parseEmployeeRange(range: string | null): number | null {
+  if (!range) return null;
+  const nums = range.match(/(\d[\d,]*)/g);
+  if (!nums) return null;
+  const parsed = nums.map((s) => parseInt(s.replace(/,/g, ''), 10));
+  if (parsed.length >= 2) return Math.round((parsed[0] + parsed[1]) / 2);
+  return parsed[0] || null;
+}
+
+/* ── Page component ───────────────────────────────────────────── */
+
 export default function LeadDetailPage() {
   const { email } = useParams<{ email: string }>();
   const [lead, setLead] = useState<Lead | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [linkedIn, setLinkedIn] = useState<ContactLinkedIn | null>(null);
+  const [linkedInLoading, setLinkedInLoading] = useState(false);
+  const [linkedInNotFound, setLinkedInNotFound] = useState(false);
+  const [linkedInError, setLinkedInError] = useState<string | null>(null);
+  const [research, setResearch] = useState<CompanyResearch | null>(null);
 
   useEffect(() => {
     if (!email) return;
-    fetchLead(decodeURIComponent(email)).then(setLead).catch((e) => setError(e.message));
+    const decoded = decodeURIComponent(email);
+    fetchLead(decoded).then(setLead).catch((e) => setError(e.message));
+    fetchLinkedInProfile(decoded)
+      .then((profile) => {
+        setLinkedIn(profile);
+        setLinkedInNotFound(false);
+        setLinkedInError(null);
+      })
+      .catch((e) => {
+        // 404 = genuinely not found; anything else = API error
+        if (e instanceof Error && e.message.startsWith('404')) {
+          setLinkedInNotFound(true);
+        } else {
+          setLinkedInError('unavailable');
+        }
+      });
   }, [email]);
+
+  // Fetch research data for employee estimate
+  useEffect(() => {
+    if (!lead) return;
+    fetchResearch()
+      .then((companies) => {
+        const match = companies.find(
+          (c) =>
+            (lead.company_domain && c.company_domain === lead.company_domain) ||
+            (lead.company_name &&
+              c.company_name?.toLowerCase() === lead.company_name?.toLowerCase()),
+        );
+        if (match) setResearch(match);
+      })
+      .catch(() => {});
+  }, [lead?.company_domain, lead?.company_name]);
+
+  const employeeEstimate = useMemo(() => {
+    const fromResearch = parseEmployeeRange(research?.employee_range ?? null);
+    if (fromResearch) return fromResearch;
+
+    const tierMap: Record<string, number> = {
+      enterprise_strategic: 2500,
+      enterprise: 1000,
+      mid_market: 300,
+      growth: 150,
+      smb: 50,
+    };
+    return tierMap[lead?.deal_size_tier || ''] || 500;
+  }, [research, lead?.deal_size_tier]);
+
+  const handleSearchLinkedIn = async () => {
+    if (!email) return;
+    setLinkedInLoading(true);
+    setLinkedInError(null);
+    try {
+      const job = await searchLinkedIn(decodeURIComponent(email));
+      let pollCount = 0;
+      const poll = setInterval(async () => {
+        pollCount++;
+        if (pollCount > 60) {
+          clearInterval(poll);
+          setLinkedInLoading(false);
+          setLinkedInError('unavailable');
+          return;
+        }
+        try {
+          const status = await fetchLinkedInSearchStatus(job.id);
+          if (status.status !== 'running') {
+            clearInterval(poll);
+            setLinkedInLoading(false);
+            if (status.status === 'completed') {
+              const profile = await fetchLinkedInProfile(decodeURIComponent(email));
+              setLinkedIn(profile);
+              setLinkedInNotFound(false);
+            } else {
+              setLinkedInError('unavailable');
+            }
+          }
+        } catch {
+          clearInterval(poll);
+          setLinkedInLoading(false);
+          setLinkedInError('unavailable');
+        }
+      }, 2000);
+    } catch (e) {
+      setLinkedInLoading(false);
+      setLinkedInError('unavailable');
+    }
+  };
 
   if (error) return <div className="text-red-600 p-4">Error: {error}</div>;
   if (!lead) return <div className="text-gray-500 p-4">Loading...</div>;
+
+  const calendarUrl = buildCalendarUrl(lead);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -55,11 +217,124 @@ export default function LeadDetailPage() {
               <span className="inline-flex items-center gap-1"><Mail className="h-4 w-4" /> {lead.sender_email}</span>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-gray-900">{formatAcv(lead.estimated_acv)}</div>
-            <div className="text-xs text-gray-500">{formatLabel(lead.deal_size_tier)} ACV</div>
+          <div className="flex flex-col items-end gap-2">
+            <div className="text-right">
+              <div className="text-2xl font-bold text-gray-900">{formatAcv(lead.estimated_acv)}</div>
+              <div className="text-xs text-gray-500">{formatLabel(lead.deal_size_tier)} ACV</div>
+            </div>
+            {/* Schedule Call button */}
+            <a
+              href={calendarUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-600/20"
+            >
+              <Calendar className="h-4 w-4" />
+              Schedule Call
+            </a>
           </div>
         </div>
+      </div>
+
+      {/* LinkedIn Profile */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1">
+          <Linkedin className="h-4 w-4 text-blue-600" /> LinkedIn Profile
+        </h2>
+        {linkedInLoading ? (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin" /> Searching LinkedIn...
+            <div className="flex-1 space-y-2 ml-4">
+              <div className="h-4 bg-gray-100 rounded animate-pulse w-48" />
+              <div className="h-3 bg-gray-100 rounded animate-pulse w-64" />
+              <div className="h-3 bg-gray-100 rounded animate-pulse w-40" />
+            </div>
+          </div>
+        ) : linkedIn ? (
+          <div className="flex gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-semibold text-gray-900">{linkedIn.full_name}</span>
+                {linkedIn.linkedin_url && (
+                  <a
+                    href={linkedIn.linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded"
+                  >
+                    <ExternalLink className="h-3 w-3" /> View Profile
+                  </a>
+                )}
+              </div>
+              {linkedIn.headline && (
+                <p className="text-sm text-gray-600 mb-1">{linkedIn.headline}</p>
+              )}
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                {linkedIn.current_title && (
+                  <span className="inline-flex items-center gap-1">
+                    <Briefcase className="h-3 w-3" /> {linkedIn.current_title}
+                    {linkedIn.current_company && ` at ${linkedIn.current_company}`}
+                  </span>
+                )}
+                {linkedIn.location && (
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> {linkedIn.location}
+                  </span>
+                )}
+              </div>
+              {linkedIn.summary && (
+                <p className="text-sm text-gray-600 mt-2">{linkedIn.summary}</p>
+              )}
+            </div>
+            {linkedIn.experience_json && linkedIn.experience_json.length > 0 && (
+              <div className="w-64 border-l border-gray-100 pl-4">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Experience</h3>
+                <div className="space-y-2">
+                  {linkedIn.experience_json.slice(0, 3).map((exp, i) => (
+                    <div key={i} className="text-xs">
+                      <div className="font-medium text-gray-800">{exp.title}</div>
+                      <div className="text-gray-500">{exp.company}{exp.duration ? ` · ${exp.duration}` : ''}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : linkedInError ? (
+          <div className="flex items-center justify-between bg-gray-50 rounded-lg border border-gray-200 px-4 py-3">
+            <span className="text-sm text-gray-500">LinkedIn profile lookup unavailable</span>
+            <button
+              onClick={() => {
+                if (!email) return;
+                setLinkedInError(null);
+                setLinkedInLoading(true);
+                fetchLinkedInProfile(decodeURIComponent(email))
+                  .then((profile) => {
+                    setLinkedIn(profile);
+                    setLinkedInNotFound(false);
+                    setLinkedInError(null);
+                    setLinkedInLoading(false);
+                  })
+                  .catch(() => {
+                    setLinkedInError('unavailable');
+                    setLinkedInLoading(false);
+                  });
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-100 transition-colors"
+            >
+              <RefreshCw className="h-3 w-3" /> Retry
+            </button>
+          </div>
+        ) : linkedInNotFound ? (
+          <div>
+            <button
+              onClick={handleSearchLinkedIn}
+              className="inline-flex items-center gap-1.5 text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"
+            >
+              <Search className="h-4 w-4" /> Search LinkedIn
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-4">
@@ -113,7 +388,7 @@ export default function LeadDetailPage() {
           </h2>
           <ul className="space-y-1">
             {(lead.discovery_questions_json || []).map((q, i) => (
-              <li key={i} className="text-sm text-gray-700">• {q}</li>
+              <li key={i} className="text-sm text-gray-700">&bull; {q}</li>
             ))}
           </ul>
         </div>
@@ -124,7 +399,7 @@ export default function LeadDetailPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-2">Competitive Signals</h2>
           {(lead.competitive_signals_json || []).length > 0
-            ? <ul className="space-y-1">{lead.competitive_signals_json.map((s, i) => <li key={i} className="text-sm text-gray-700">• {s}</li>)}</ul>
+            ? <ul className="space-y-1">{lead.competitive_signals_json.map((s, i) => <li key={i} className="text-sm text-gray-700">&bull; {s}</li>)}</ul>
             : <p className="text-sm text-gray-400">None detected</p>
           }
         </div>
@@ -149,7 +424,7 @@ export default function LeadDetailPage() {
 
       {/* Email History */}
       {lead.emails && lead.emails.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1">
             <Mail className="h-4 w-4" /> Email History ({lead.emails.length})
           </h2>
@@ -166,6 +441,19 @@ export default function LeadDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ── Feature 1: Org Power Map ──────────────────────────────── */}
+      <OrgPowerMap
+        senderName={lead.sender_name}
+        senderTitle={lead.sender_title}
+        companyName={lead.company_name}
+      />
+
+      {/* ── Feature 2: Department Heat Map ────────────────────────── */}
+      <DepartmentHeatMap
+        employeeEstimate={employeeEstimate}
+        companyName={lead.company_name}
+      />
     </div>
   );
 }

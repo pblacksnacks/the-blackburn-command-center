@@ -40,12 +40,12 @@ DEMO_EMAILS = [
     # 1. Notion — product integration, ready to buy, strong
     RawEmail(
         email_id="demo-001",
-        sender_email="vp.engineering@notion.so",
-        sender_name="Raj Mehta",
+        sender_email="cto@notion.so",
+        sender_name="Fuzzy Khosrowshahi",
         subject="Claude API integration for Notion AI — need enterprise contract by Q2",
         body=(
             "Hi Anthropic team,\n\n"
-            "I'm the VP of Engineering at Notion. We're currently using OpenAI's API for our "
+            "I'm the CTO at Notion. We're currently using OpenAI's API for our "
             "Notion AI features, but we've been benchmarking Claude Sonnet and Haiku for the past "
             "6 weeks and the quality delta is significant — especially on long-context summarization.\n\n"
             "We're looking to migrate our AI pipeline to Claude by end of Q2. This would cover:\n"
@@ -55,20 +55,20 @@ DEMO_EMAILS = [
             "We need an enterprise API agreement with committed throughput guarantees. Our current "
             "monthly token volume is in the range of 50B tokens/month. Happy to share exact numbers "
             "on a call.\n\n"
-            "Can we schedule a technical deep-dive this week? Our CTO Ivan Zhao would join.\n\n"
-            "Best,\nRaj Mehta\nVP Engineering, Notion"
+            "Can we schedule a technical deep-dive this week? Our CEO Ivan Zhao would join.\n\n"
+            "Best,\nFuzzy Khosrowshahi\nCTO, Notion"
         ),
         received_at="2026-03-07T08:15:00Z",
     ),
     # 2. Webflow — internal productivity + exploring product, evaluating
     RawEmail(
         email_id="demo-002",
-        sender_email="linda.chen@webflow.com",
-        sender_name="Linda Chen",
+        sender_email="arquay.harris@webflow.com",
+        sender_name="Arquay Harris",
         subject="Evaluating Claude for internal ops + potential product features",
         body=(
             "Hi,\n\n"
-            "I lead the Product Operations team at Webflow (~1,000 employees). We're exploring "
+            "I lead the Engineering team at Webflow (~1,000 employees). We're exploring "
             "two tracks:\n\n"
             "1. Internal: our support team handles 3,000+ tickets/week. We want to use Claude to "
             "auto-draft responses, classify tickets, and surface knowledge base gaps.\n\n"
@@ -77,19 +77,19 @@ DEMO_EMAILS = [
             "quality caught our attention.\n\n"
             "We're comparing Claude, GPT-4o, and Gemini. Our evaluation committee meets March 20th.\n\n"
             "Could you send over enterprise pricing and a technical capabilities deck?\n\n"
-            "Thanks,\nLinda Chen\nHead of Product Ops, Webflow"
+            "Thanks,\nArquay Harris\nVP Engineering, Webflow"
         ),
         received_at="2026-03-07T08:45:00Z",
     ),
     # 3. Verkada — product integration, strong signals
     RawEmail(
         email_id="demo-003",
-        sender_email="james.park@verkada.com",
-        sender_name="James Park",
+        sender_email="filip@verkada.com",
+        sender_name="Filip Kaliszan",
         subject="Claude API for real-time video analytics — procurement timeline Q2",
         body=(
             "Team,\n\n"
-            "James Park, Director of AI/ML at Verkada. We build cloud-managed security cameras "
+            "Filip Kaliszan, CEO & Co-founder at Verkada. We build cloud-managed security cameras "
             "and access control systems for enterprise customers.\n\n"
             "We want to integrate Claude's vision capabilities into our camera analytics pipeline. "
             "Specific use cases:\n"
@@ -100,7 +100,7 @@ DEMO_EMAILS = [
             "isn't sustainable. Our VP of Product has approved budget for this switch.\n\n"
             "Procurement needs to have a contract in hand by April 15. Security review is already "
             "underway — can you send your SOC 2 Type II report and BAA?\n\n"
-            "James Park\nDirector of AI/ML, Verkada"
+            "Filip Kaliszan\nCEO & Co-founder, Verkada"
         ),
         received_at="2026-03-07T09:00:00Z",
     ),
@@ -128,8 +128,8 @@ DEMO_EMAILS = [
     # 5. Airtable — product integration, competitive bake-off
     RawEmail(
         email_id="demo-005",
-        sender_email="mike.rodriguez@airtable.com",
-        sender_name="Mike Rodriguez",
+        sender_email="cto@airtable.com",
+        sender_name="David Azose",
         subject="Re: AI features roadmap — Claude vs GPT comparison results",
         body=(
             "Hi,\n\n"
@@ -142,7 +142,7 @@ DEMO_EMAILS = [
             "expanding to all 500K+ Airtable customers if the pilot succeeds.\n\n"
             "Key question: can you support our volume tier with guaranteed latency SLAs? "
             "We need p95 < 2s for interactive features.\n\n"
-            "Mike Rodriguez\nSenior Engineer, AI Platform, Airtable"
+            "David Azose\nCTO, Airtable"
         ),
         received_at="2026-03-07T10:00:00Z",
     ),
@@ -170,12 +170,12 @@ DEMO_EMAILS = [
     # 7. Figma — product integration, strong
     RawEmail(
         email_id="demo-007",
-        sender_email="alex.wong@figma.com",
-        sender_name="Alex Wong",
+        sender_email="david.kossnick@figma.com",
+        sender_name="David Kossnick",
         subject="Claude for Figma AI — replacing our current LLM provider",
         body=(
             "Hi,\n\n"
-            "Alex Wong, Head of AI at Figma. We launched our first AI features last year using "
+            "David Kossnick, Head of AI Products at Figma. We launched our first AI features last year using "
             "a mix of in-house models and third-party APIs. We're consolidating onto a single "
             "provider for our next generation of AI tools:\n\n"
             "- AI-powered design suggestions and auto-layout\n"
@@ -187,19 +187,19 @@ DEMO_EMAILS = [
             "Budget is allocated. Decision by end of March. We'd need a dedicated account team "
             "given the scale — Figma has 4M+ users generating AI requests.\n\n"
             "Can we meet this week?\n\n"
-            "Alex Wong\nHead of AI, Figma"
+            "David Kossnick\nHead of AI Products, Figma"
         ),
         received_at="2026-03-07T10:30:00Z",
     ),
     # 8. Retool — product integration, evaluating
     RawEmail(
         email_id="demo-008",
-        sender_email="david.liu@retool.com",
-        sender_name="David Liu",
+        sender_email="mark.schaaf@retool.com",
+        sender_name="Mark Schaaf",
         subject="Embedding Claude in Retool's AI features",
         body=(
             "Hey Anthropic team,\n\n"
-            "David Liu from Retool. We build internal tools for companies like Amazon, NBC, and "
+            "Mark Schaaf from Retool. We build internal tools for companies like Amazon, NBC, and "
             "DoorDash. We're adding AI capabilities to let our users:\n\n"
             "- Generate SQL queries from natural language\n"
             "- Build CRUD apps from descriptions\n"
@@ -209,7 +209,7 @@ DEMO_EMAILS = [
             "Our main concerns are: rate limits at scale, JSON mode reliability, and enterprise "
             "support responsiveness. We have about 500 employees and serve thousands of companies.\n\n"
             "Would love to discuss enterprise terms.\n\n"
-            "David Liu\nSenior Product Manager, Retool"
+            "Mark Schaaf\nCOO, Retool"
         ),
         received_at="2026-03-07T11:00:00Z",
     ),
@@ -349,24 +349,53 @@ DEMO_EMAILS = [
     # 15. Loom — product integration, researching
     RawEmail(
         email_id="demo-015",
-        sender_email="head.ai@loom.com",
-        sender_name="Marcus Johnson",
+        sender_email="sanchan@atlassian.com",
+        sender_name="Sanchan Saxena",
         subject="Exploring Claude for video AI features",
         body=(
             "Hey,\n\n"
-            "Marcus Johnson, Head of AI at Loom. We do async video messaging — 25M+ users. "
+            "Sanchan Saxena, Head of Loom Product Group at Atlassian. We do async video messaging — 25M+ users. "
             "We're thinking about next-gen AI features:\n\n"
             "- Automatic video summarization and chapters\n"
             "- Smart search across video libraries ('find the meeting where we discussed Q3 OKRs')\n"
             "- Auto-generated follow-up tasks from video content\n\n"
             "We're early stage — no vendor selected yet, no formal budget allocated. But our "
-            "CEO is very bullish on AI features driving conversion from free to paid.\n\n"
+            "leadership is very bullish on AI features driving conversion from free to paid.\n\n"
             "Can we get access to the API to prototype? Also curious about your multimodal "
             "roadmap — video understanding would be a game-changer for us.\n\n"
-            "Marcus Johnson\nHead of AI, Loom"
+            "Sanchan Saxena\nHead of Loom Product Group, Atlassian"
         ),
         received_at="2026-03-07T14:00:00Z",
     ),
+    # 16. StubHub — enterprise AI standardization, CTO direct, competitive displacement
+    RawEmail(
+        email_id="demo-016",
+        sender_email="art.yegorov@stubhub.com",
+        sender_name="Art Yegorov",
+        subject="Evaluating Claude for enterprise AI standardization",
+        body=(
+            "Hi,\n\n"
+            "I'm the CTO at StubHub. We recently went public (NYSE: STUB) and I'm leading "
+            "an initiative to standardize our AI tooling across the organization.\n\n"
+            "We currently have multiple teams using OpenAI across customer support, internal "
+            "productivity, and some agentic workflow prototypes — but without central oversight. "
+            "We've been hitting hallucination issues that have made it upstream to product, and "
+            "I want to evaluate alternatives before we commit to a -term enterprise agreement "
+            "with any single provider.\n\n"
+            "We're on GCP and use Vertex AI today, so integration there is a requirement. "
+            "Our priority use cases are:\n"
+            "- Internal productivity tools for engineering and ops (~300 engineers)\n"
+            "- Customer support automation — we handle 120M+ buyers annually across 90 countries\n"
+            "- Agentic workflows for our ticket pricing intelligence and fraud detection systems\n\n"
+            "I'm particularly interested in Claude's consistency and safety track record versus "
+            "what we've experienced so far. I have final approval on major technology purchases "
+            "and want to see a technical evaluation completed this quarter.\n\n"
+            "Let's set up an intro call. What does next week look like?\n\n"
+            "Art Yegorov\nCTO, StubHub"
+        ),
+        received_at="2026-03-08T09:30:00Z",
+    ),
+
 ]
 
 

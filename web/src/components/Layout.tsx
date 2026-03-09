@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Building2, FileText, Mail } from 'lucide-react';
+import { LayoutDashboard, Building2, FileText, Radar } from 'lucide-react';
 import PipelineRunner from './PipelineRunner';
 
 const nav = [
@@ -12,23 +12,25 @@ export default function Layout({ children, onPipelineComplete }: { children: Rea
   const { pathname } = useLocation();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top bar */}
-      <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50">
+      {/* Dark navy header */}
+      <header className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold text-gray-900">
-            <Mail className="h-5 w-5 text-indigo-600" />
-            Email Triage
+          <Link to="/" className="flex items-center gap-2.5 font-bold text-white text-lg tracking-tight">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500 shadow-lg shadow-blue-500/25">
+              <Radar className="h-4 w-4 text-white" />
+            </div>
+            Blackburn Command Center
           </Link>
           <nav className="flex gap-1">
             {nav.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
-                className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                   pathname === to
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-white/15 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -40,7 +42,6 @@ export default function Layout({ children, onPipelineComplete }: { children: Rea
         <PipelineRunner onComplete={onPipelineComplete} />
       </header>
 
-      {/* Content */}
       <main className="p-6">{children}</main>
     </div>
   );

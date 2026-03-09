@@ -16,6 +16,13 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return res.json();
 }
 
+export interface MeddpiccDimension {
+  status: 'known' | 'partial' | 'unknown';
+  evidence: string;
+  gap: string;
+  question: string;
+}
+
 export interface Lead {
   id: number;
   sender_email: string;
@@ -40,7 +47,7 @@ export interface Lead {
   deal_size_tier: string;
   tam_estimate: string | null;
   expansion_potential: string | null;
-  meddpicc_json: Record<string, string>;
+  meddpicc_json: Record<string, MeddpiccDimension>;
   discovery_questions_json: string[];
   next_best_action: string;
   partnership_synergies_json: string[];
@@ -100,6 +107,40 @@ export interface PipelineJob {
   finished_at: number | null;
   error: string | null;
 }
+
+export interface ContactLinkedIn {
+  id: number;
+  sender_email: string;
+  company_key: string | null;
+  full_name: string | null;
+  linkedin_url: string | null;
+  headline: string | null;
+  location: string | null;
+  current_title: string | null;
+  current_company: string | null;
+  summary: string | null;
+  experience_json: Array<{ title: string; company: string; duration?: string }>;
+  source_urls_json: string[];
+  searched_at: string | null;
+  updated_at: string;
+}
+
+export interface LinkedInSearchJob {
+  id: string;
+  sender_email: string;
+  status: 'running' | 'completed' | 'failed';
+  started_at: number;
+  finished_at: number | null;
+  error: string | null;
+}
+
+export const fetchLinkedInProfiles = () => get<ContactLinkedIn[]>('/linkedin');
+export const fetchLinkedInProfile = (email: string) =>
+  get<ContactLinkedIn>(`/linkedin/${encodeURIComponent(email)}`);
+export const searchLinkedIn = (senderEmail: string) =>
+  post<LinkedInSearchJob>('/linkedin/search', { sender_email: senderEmail });
+export const fetchLinkedInSearchStatus = (jobId: string) =>
+  get<LinkedInSearchJob>(`/linkedin/search/status/${jobId}`);
 
 export const fetchLeads = (params?: Record<string, string>) => {
   const qs = params ? '?' + new URLSearchParams(params).toString() : '';

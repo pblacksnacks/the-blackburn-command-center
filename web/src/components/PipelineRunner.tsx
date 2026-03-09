@@ -40,7 +40,7 @@ export default function PipelineRunner({ onComplete }: { onComplete?: () => void
           key={s}
           onClick={() => run(s)}
           disabled={job?.status === 'running'}
-          className="inline-flex items-center gap-1 rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1 rounded-lg bg-white/10 border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/20 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <Play className="h-3 w-3" />
           {s}
@@ -48,21 +48,21 @@ export default function PipelineRunner({ onComplete }: { onComplete?: () => void
       ))}
 
       {job?.status === 'running' && (
-        <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-          <Loader2 className="h-3 w-3 animate-spin" /> Running {job.stage}...
+        <span className="inline-flex items-center gap-1.5 text-xs text-blue-300 font-medium">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Running {job.stage}...
         </span>
       )}
       {job?.status === 'completed' && (
-        <span className="inline-flex items-center gap-1 text-xs text-green-600">
-          <CheckCircle className="h-3 w-3" /> Done
+        <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+          <CheckCircle className="h-3.5 w-3.5" /> Done
         </span>
       )}
       {job?.status === 'failed' && (
-        <span className="inline-flex items-center gap-1 text-xs text-red-600">
-          <XCircle className="h-3 w-3" /> {job.error}
+        <span className="inline-flex items-center gap-1.5 text-xs text-red-400 font-medium">
+          <XCircle className="h-3.5 w-3.5" /> {job.error}
         </span>
       )}
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && <span className="text-xs text-red-400 font-medium">{error}</span>}
     </div>
   );
 }
