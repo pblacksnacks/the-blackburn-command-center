@@ -156,3 +156,37 @@ export const runPipeline = (stage: string, demo: boolean) =>
   post<PipelineJob>('/pipeline/run', { stage, demo });
 export const fetchPipelineStatus = (jobId: string) =>
   get<PipelineJob>(`/pipeline/status/${jobId}`);
+
+export interface CallPrep {
+  contact_summary: string;
+  company_snapshot: string;
+  why_theyre_here: string;
+  current_stack: string;
+  suggested_agenda: string[];
+  discovery_questions: string[];
+  objection_prep: Array<{ objection: string; response: string }>;
+  competitive_positioning: string;
+  land_strategy: string;
+  expand_strategy: string;
+  proposed_next_step: string;
+  do_not_say: string[];
+}
+
+export const generateCallPrep = (email: string) =>
+  post<CallPrep>(`/leads/${encodeURIComponent(email)}/call-prep`, {});
+
+export async function downloadCallPrepPptx(email: string, data: CallPrep): Promise<void> {
+  const res = await fetch(`${BASE}/leads/${encodeURIComponent(email)}/call-prep-pptx`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `call-prep-${email.split('@')[0]}.pptx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}

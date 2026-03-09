@@ -103,7 +103,6 @@ function matchContact(
   if (!senderTitle) return null;
   const t = senderTitle.toLowerCase();
 
-  // Determine hierarchy level
   let roleIndex = 3;
   if (/\b(ceo|cto|cfo|cmo|coo|cro|cpo|cco|chro|chief|founder|general counsel)\b/.test(t))
     roleIndex = 0;
@@ -112,7 +111,6 @@ function matchContact(
   else if (/\bdirector\b/.test(t))
     roleIndex = 2;
 
-  // Determine department
   const matchers: [string, RegExp][] = [
     ['engineering', /\b(engineer|engineering|software|developer|technical|tech|ai[/ ]|ai$|ml|platform|infrastructure|devops|cto)\b/],
     ['sales', /\b(sales|revenue|business development|account|cro)\b/],
@@ -128,7 +126,6 @@ function matchContact(
     if (regex.test(t)) return { deptKey, roleIndex };
   }
 
-  // C-suite with no clear dept keyword → default to engineering column
   if (roleIndex === 0) return { deptKey: 'engineering', roleIndex: 0 };
 
   return null;
@@ -137,17 +134,17 @@ function matchContact(
 /* ── Style maps ───────────────────────────────────────────────── */
 
 const roleTagColors: Record<string, string> = {
-  'Decision Maker': 'bg-red-50 text-red-700',
-  Influencer: 'bg-amber-50 text-amber-700',
-  Champion: 'bg-blue-50 text-blue-600',
-  'End User': 'bg-slate-50 text-slate-500',
+  'Decision Maker': 'bg-red-900/30 text-red-300',
+  Influencer: 'bg-amber-900/30 text-amber-300',
+  Champion: 'bg-blue-900/30 text-blue-300',
+  'End User': 'bg-white/5 text-[var(--text-muted)]',
 };
 
 const productColors: Record<string, string> = {
-  Enterprise: 'text-purple-600',
-  'Claude Code': 'text-emerald-600',
-  'Claude.ai': 'text-blue-600',
-  API: 'text-orange-600',
+  Enterprise: 'text-purple-400',
+  'Claude Code': 'text-emerald-400',
+  'Claude.ai': 'text-blue-400',
+  API: 'text-orange-400',
 };
 
 /* ── Component ────────────────────────────────────────────────── */
@@ -167,17 +164,23 @@ export default function OrgPowerMap({
     !(/\b(cto|cfo|cmo|cro|cpo)\b/i.test(senderTitle));
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 p-5 mb-4">
+    <div
+      className="rounded-xl p-5 mb-4 animate-fade-in-up"
+      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-          <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <svg className="h-4 w-4" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
           Account Org Power Map
         </h2>
         {(match || isCeoContact) && (
-          <span className="text-xs text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full font-semibold">
+          <span
+            className="text-xs px-2.5 py-1 rounded-full font-semibold"
+            style={{ background: 'rgba(212, 165, 116, 0.12)', color: 'var(--accent)' }}
+          >
             Entry point: {senderName || senderTitle}
           </span>
         )}
@@ -190,19 +193,24 @@ export default function OrgPowerMap({
             <div
               className={`rounded-lg px-5 py-2.5 text-center text-xs shadow-sm ${
                 isCeoContact
-                  ? 'border-2 border-blue-500 bg-blue-50 ring-2 ring-blue-300/40'
-                  : 'bg-slate-900 text-white'
+                  ? 'border-2 ring-2'
+                  : ''
               }`}
+              style={
+                isCeoContact
+                  ? { borderColor: 'var(--accent)', background: 'rgba(212, 165, 116, 0.1)', ringColor: 'rgba(212, 165, 116, 0.2)' }
+                  : { background: 'rgba(245, 240, 232, 0.08)', border: '1px solid var(--border)' }
+              }
             >
               {isCeoContact && (
-                <div className="text-[8px] font-bold text-blue-600 uppercase tracking-widest mb-0.5">
+                <div className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--accent)' }}>
                   ★ Entry Point
                 </div>
               )}
-              <div className={`font-bold ${isCeoContact ? 'text-blue-900' : ''}`}>
+              <div className="font-bold" style={{ color: isCeoContact ? 'var(--accent)' : 'var(--text-primary)' }}>
                 {isCeoContact ? senderName || 'CEO' : 'CEO'}
               </div>
-              <div className={`text-[10px] mt-0.5 ${isCeoContact ? 'text-blue-600' : 'text-slate-400'}`}>
+              <div className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 {companyName || 'Company'} Leadership
               </div>
             </div>
@@ -210,21 +218,21 @@ export default function OrgPowerMap({
 
           {/* Vertical connector from CEO */}
           <div className="flex justify-center">
-            <div className="w-px h-4 bg-slate-300" />
+            <div className="w-px h-4" style={{ background: 'var(--border)' }} />
           </div>
 
           {/* Horizontal connecting bar */}
-          <div className="mx-[6%] border-t-2 border-slate-300" />
+          <div className="mx-[6%]" style={{ borderTop: '2px solid var(--border)' }} />
 
           {/* Department columns */}
           <div className="grid grid-cols-8 gap-1.5">
             {departments.map((dept) => (
               <div key={dept.key} className="flex flex-col items-center">
                 {/* Vertical drop from horizontal bar */}
-                <div className="w-px h-3 bg-slate-300" />
+                <div className="w-px h-3" style={{ background: 'var(--border)' }} />
 
                 {/* Department label */}
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 text-center leading-tight">
+                <div className="text-[9px] font-bold uppercase tracking-wider mb-1.5 text-center leading-tight" style={{ color: 'var(--text-muted)' }}>
                   {dept.label}
                 </div>
 
@@ -237,47 +245,48 @@ export default function OrgPowerMap({
                   return (
                     <div key={role.title} className="w-full flex flex-col items-center">
                       {/* Vertical connector between nodes */}
-                      {i > 0 && <div className="w-px h-2 bg-slate-200" />}
+                      {i > 0 && <div className="w-px h-2" style={{ background: 'rgba(245, 240, 232, 0.06)' }} />}
 
                       <div
                         className={`w-full rounded-lg border p-1.5 text-center transition-all ${
                           isContact
-                            ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-500/10 ring-2 ring-blue-300/40'
-                            : 'border-slate-200 bg-white'
+                            ? 'border-2 shadow-md ring-2'
+                            : ''
                         }`}
+                        style={
+                          isContact
+                            ? { borderColor: 'var(--accent)', background: 'rgba(212, 165, 116, 0.1)', boxShadow: '0 4px 12px rgba(212, 165, 116, 0.15)', ringColor: 'rgba(212, 165, 116, 0.2)' }
+                            : { borderColor: 'var(--border)', background: 'var(--bg-card-solid)' }
+                        }
                       >
                         {isContact && (
-                          <div className="text-[7px] font-bold text-blue-600 uppercase tracking-widest mb-0.5">
+                          <div className="text-[7px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--accent)' }}>
                             ★ Entry Point
                           </div>
                         )}
 
-                        {/* Name (only for contact) */}
                         {isContact && senderName && (
-                          <div className="text-[10px] font-bold text-blue-900 leading-tight mb-0.5">
+                          <div className="text-[10px] font-bold leading-tight mb-0.5" style={{ color: 'var(--accent)' }}>
                             {senderName}
                           </div>
                         )}
 
-                        {/* Title */}
                         <div
-                          className={`text-[10px] font-semibold leading-tight ${
-                            isContact ? 'text-blue-700' : 'text-slate-700'
-                          }`}
+                          className="text-[10px] font-semibold leading-tight"
+                          style={{ color: isContact ? 'var(--accent)' : 'var(--text-secondary)' }}
                         >
                           {isContact && senderTitle ? senderTitle : role.title}
                         </div>
 
-                        {/* Product */}
                         <div
                           className={`text-[9px] font-medium mt-0.5 ${
-                            productColors[role.product] || 'text-slate-500'
+                            productColors[role.product] || ''
                           }`}
+                          style={productColors[role.product] ? {} : { color: 'var(--text-muted)' }}
                         >
                           {role.product}
                         </div>
 
-                        {/* Role tag */}
                         <span
                           className={`inline-block mt-1 text-[7px] font-bold px-1.5 py-px rounded-full uppercase tracking-wide ${
                             roleTagColors[displayTag]
@@ -296,15 +305,15 @@ export default function OrgPowerMap({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-500">
-        <span className="font-semibold text-slate-600">Roles:</span>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-4 pt-3 text-[10px]" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+        <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>Roles:</span>
         {Object.entries(roleTagColors).map(([label, cls]) => (
           <span key={label} className="flex items-center gap-1">
             <span className={`inline-block w-2 h-2 rounded-full ${cls.split(' ')[0]}`} />
             {label}
           </span>
         ))}
-        <span className="ml-2 font-semibold text-slate-600">Products:</span>
+        <span className="ml-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>Products:</span>
         {Object.entries(productColors).map(([label, cls]) => (
           <span key={label} className={`font-medium ${cls}`}>{label}</span>
         ))}

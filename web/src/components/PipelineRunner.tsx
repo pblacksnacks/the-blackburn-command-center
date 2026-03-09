@@ -40,7 +40,20 @@ export default function PipelineRunner({ onComplete }: { onComplete?: () => void
           key={s}
           onClick={() => run(s)}
           disabled={job?.status === 'running'}
-          className="inline-flex items-center gap-1 rounded-lg bg-white/10 border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/20 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{
+            background: 'rgba(212, 165, 116, 0.1)',
+            border: '1px solid rgba(212, 165, 116, 0.2)',
+            color: 'var(--accent)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(212, 165, 116, 0.2)';
+            e.currentTarget.style.color = 'var(--accent-hover)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(212, 165, 116, 0.1)';
+            e.currentTarget.style.color = 'var(--accent)';
+          }}
         >
           <Play className="h-3 w-3" />
           {s}
@@ -48,7 +61,7 @@ export default function PipelineRunner({ onComplete }: { onComplete?: () => void
       ))}
 
       {job?.status === 'running' && (
-        <span className="inline-flex items-center gap-1.5 text-xs text-blue-300 font-medium">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--accent)' }}>
           <Loader2 className="h-3.5 w-3.5 animate-spin" /> Running {job.stage}...
         </span>
       )}

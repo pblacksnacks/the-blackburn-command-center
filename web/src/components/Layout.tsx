@@ -12,12 +12,17 @@ export default function Layout({ children, onPipelineComplete }: { children: Rea
   const { pathname } = useLocation();
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Dark navy header */}
-      <header className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-3 flex items-center justify-between">
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+      <header
+        className="px-6 py-3 flex items-center justify-between border-b"
+        style={{ background: 'rgba(18, 17, 16, 0.95)', borderColor: 'var(--border)' }}
+      >
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-2.5 font-bold text-white text-lg tracking-tight">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500 shadow-lg shadow-blue-500/25">
+          <Link to="/" className="flex items-center gap-2.5 font-bold text-lg tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            <div
+              className="flex items-center justify-center w-8 h-8 rounded-lg shadow-lg"
+              style={{ background: 'var(--accent)', boxShadow: '0 4px 12px rgba(212, 165, 116, 0.3)' }}
+            >
               <Radar className="h-4 w-4 text-white" />
             </div>
             Blackburn Command Center
@@ -27,11 +32,24 @@ export default function Layout({ children, onPipelineComplete }: { children: Rea
               <Link
                 key={to}
                 to={to}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                style={
                   pathname === to
-                    ? 'bg-white/15 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
+                    ? { background: 'rgba(212, 165, 116, 0.15)', color: 'var(--accent)' }
+                    : { color: 'var(--text-muted)' }
+                }
+                onMouseEnter={(e) => {
+                  if (pathname !== to) {
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                    e.currentTarget.style.background = 'rgba(245, 240, 232, 0.05)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (pathname !== to) {
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
               >
                 <Icon className="h-4 w-4" />
                 {label}

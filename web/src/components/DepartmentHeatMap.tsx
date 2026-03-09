@@ -65,13 +65,13 @@ function computeGrid(totalEmployees: number) {
   return { cells, maxValue };
 }
 
-function intensityClass(value: number, maxValue: number): string {
-  if (maxValue === 0 || value === 0) return 'bg-slate-50 text-slate-400';
+function intensityStyle(value: number, maxValue: number): React.CSSProperties {
+  if (maxValue === 0 || value === 0) return { background: 'rgba(245, 240, 232, 0.03)', color: 'var(--text-muted)' };
   const ratio = value / maxValue;
-  if (ratio >= 0.6) return 'bg-emerald-600 text-white';
-  if (ratio >= 0.3) return 'bg-emerald-400 text-white';
-  if (ratio >= 0.1) return 'bg-emerald-200 text-emerald-900';
-  return 'bg-emerald-50 text-emerald-700';
+  if (ratio >= 0.6) return { background: 'rgba(16, 185, 129, 0.3)', color: '#6ee7b7' };
+  if (ratio >= 0.3) return { background: 'rgba(16, 185, 129, 0.18)', color: '#6ee7b7' };
+  if (ratio >= 0.1) return { background: 'rgba(16, 185, 129, 0.08)', color: '#a7f3d0' };
+  return { background: 'rgba(16, 185, 129, 0.04)', color: 'var(--text-muted)' };
 }
 
 function formatValue(v: number): string {
@@ -105,12 +105,16 @@ export default function DepartmentHeatMap({
   const grandSeats = deptTotals.reduce((sum, d) => sum + d.seats, 0);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 p-5 mb-4">
+    <div
+      className="rounded-xl p-5 mb-4 animate-fade-in-up"
+      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+        <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
           <svg
-            className="h-4 w-4 text-slate-500"
+            className="h-4 w-4"
+            style={{ color: 'var(--text-muted)' }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -124,12 +128,12 @@ export default function DepartmentHeatMap({
           </svg>
           Department Revenue Heat Map
           {companyName && (
-            <span className="text-slate-400 font-normal"> &mdash; {companyName}</span>
+            <span style={{ color: 'var(--text-muted)' }} className="font-normal"> &mdash; {companyName}</span>
           )}
         </h2>
-        <div className="flex items-center gap-4 text-xs text-slate-500">
+        <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
           <span>~{employeeEstimate.toLocaleString()} employees</span>
-          <span className="font-bold text-slate-800 text-sm">
+          <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
             TAM: {formatValue(grandTotal)}
           </span>
         </div>
@@ -140,13 +144,14 @@ export default function DepartmentHeatMap({
         <table className="w-full min-w-[740px] text-xs border-separate border-spacing-1">
           <thead>
             <tr>
-              <th className="text-left py-2 px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-36">
+              <th className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-wider w-36" style={{ color: 'var(--text-muted)' }}>
                 Product
               </th>
               {deptConfig.map((d) => (
                 <th
                   key={d.key}
-                  className="text-center py-2 px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  className="text-center py-2 px-1 text-[10px] font-bold uppercase tracking-wider"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   {d.key}
                 </th>
@@ -157,7 +162,7 @@ export default function DepartmentHeatMap({
           <tbody>
             {products.map((product) => (
               <tr key={product.key}>
-                <td className="py-1 px-2 font-semibold text-slate-700 whitespace-nowrap">
+                <td className="py-1 px-2 font-semibold whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
                   {product.key}
                 </td>
                 {deptConfig.map((dept) => {
@@ -165,10 +170,8 @@ export default function DepartmentHeatMap({
                   return (
                     <td key={dept.key} className="p-0.5">
                       <div
-                        className={`rounded-lg p-2 text-center transition-colors ${intensityClass(
-                          cell.value,
-                          maxValue,
-                        )}`}
+                        className="rounded-lg p-2 text-center transition-colors"
+                        style={intensityStyle(cell.value, maxValue)}
                       >
                         <div className="font-bold tabular-nums">
                           {cell.seats > 0 ? cell.seats : '\u2014'}
@@ -186,12 +189,15 @@ export default function DepartmentHeatMap({
 
           <tfoot>
             <tr>
-              <td className="py-1 px-2 font-bold text-slate-900">Total</td>
+              <td className="py-1 px-2 font-bold" style={{ color: 'var(--text-primary)' }}>Total</td>
               {deptTotals.map((dt) => (
                 <td key={dt.dept} className="p-0.5">
-                  <div className="rounded-lg bg-slate-900 text-white p-2 text-center">
+                  <div
+                    className="rounded-lg p-2 text-center"
+                    style={{ background: 'rgba(245, 240, 232, 0.08)', color: 'var(--text-primary)' }}
+                  >
                     <div className="font-bold tabular-nums">{dt.seats}</div>
-                    <div className="text-[10px] text-slate-300">{formatValue(dt.value)}</div>
+                    <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatValue(dt.value)}</div>
                   </div>
                 </td>
               ))}
@@ -200,20 +206,26 @@ export default function DepartmentHeatMap({
             {/* Grand total row */}
             <tr>
               <td colSpan={deptConfig.length + 1} className="pt-3 px-2">
-                <div className="flex items-center justify-between bg-gradient-to-r from-slate-800 to-slate-900 rounded-lg px-4 py-3 text-white">
+                <div
+                  className="flex items-center justify-between rounded-lg px-4 py-3"
+                  style={{
+                    background: 'linear-gradient(to right, rgba(212, 165, 116, 0.12), rgba(212, 165, 116, 0.06))',
+                    border: '1px solid rgba(212, 165, 116, 0.2)',
+                  }}
+                >
                   <div>
-                    <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                    <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                       Full Account TAM
                     </div>
-                    <div className="text-xl font-extrabold tracking-tight">
+                    <div className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--accent)' }}>
                       {formatValue(grandTotal)}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                    <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                       Total Seats
                     </div>
-                    <div className="text-xl font-extrabold tracking-tight tabular-nums">
+                    <div className="text-xl font-extrabold tracking-tight tabular-nums" style={{ color: 'var(--text-primary)' }}>
                       {grandSeats.toLocaleString()}
                     </div>
                   </div>
@@ -225,21 +237,21 @@ export default function DepartmentHeatMap({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-5 mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-500">
-        <span className="font-semibold text-slate-600">Intensity:</span>
+      <div className="flex items-center gap-5 mt-4 pt-3 text-[10px]" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+        <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>Intensity:</span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-emerald-600" /> High
+          <span className="w-3 h-3 rounded" style={{ background: 'rgba(16, 185, 129, 0.3)' }} /> High
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-emerald-400" /> Medium
+          <span className="w-3 h-3 rounded" style={{ background: 'rgba(16, 185, 129, 0.18)' }} /> Medium
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-emerald-200 border border-emerald-300" /> Low
+          <span className="w-3 h-3 rounded" style={{ background: 'rgba(16, 185, 129, 0.08)' }} /> Low
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-emerald-50 border border-emerald-100" /> Minimal
+          <span className="w-3 h-3 rounded" style={{ background: 'rgba(16, 185, 129, 0.04)', border: '1px solid rgba(16, 185, 129, 0.1)' }} /> Minimal
         </span>
-        <span className="ml-auto text-slate-400">
+        <span className="ml-auto" style={{ color: 'var(--text-muted)' }}>
           Seats = dept headcount &times; product adoption rate &bull; Values = seats &times;
           annual price
         </span>

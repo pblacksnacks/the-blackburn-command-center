@@ -4,27 +4,27 @@ import type { MeddpiccDimension } from '../api';
 /* ── status → visual mapping ─────────────────────────────────── */
 
 const badgeColors: Record<string, string> = {
-  known: 'bg-green-100 text-green-800 border-green-300',
-  partial: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  unknown: 'bg-gray-100 text-gray-500 border-gray-300',
+  known: 'bg-emerald-900/40 text-emerald-300 border-emerald-700/50',
+  partial: 'bg-amber-900/30 text-amber-300 border-amber-700/40',
+  unknown: 'bg-white/5 text-[var(--text-muted)] border-[var(--border)]',
 };
 
 const dotColors: Record<string, string> = {
-  known: 'bg-green-500',
-  partial: 'bg-yellow-500',
-  unknown: 'bg-gray-400',
+  known: 'bg-emerald-500',
+  partial: 'bg-amber-500',
+  unknown: 'bg-gray-500',
 };
 
 const expandBorderColors: Record<string, string> = {
-  known: 'border-green-200',
-  partial: 'border-yellow-200',
-  unknown: 'border-gray-200',
+  known: 'border-emerald-800/40',
+  partial: 'border-amber-800/40',
+  unknown: 'border-[var(--border)]',
 };
 
 const expandAccent: Record<string, string> = {
-  known: 'bg-green-50',
-  partial: 'bg-yellow-50',
-  unknown: 'bg-gray-50',
+  known: 'bg-emerald-900/20',
+  partial: 'bg-amber-900/20',
+  unknown: 'bg-white/3',
 };
 
 /* ── labels ──────────────────────────────────────────────────── */
@@ -60,7 +60,6 @@ function normalize(value: string | MeddpiccDimension): MeddpiccDimension {
   return value;
 }
 
-/** Build the hover preview line — the one key fact or gap a rep needs at a glance. */
 function hoverPreview(dim: MeddpiccDimension): string {
   if (dim.status === 'known' && dim.evidence) return dim.evidence;
   if (dim.status === 'partial' && dim.evidence) return dim.evidence;
@@ -91,7 +90,6 @@ function DimensionBadge({
   const status = dimension.status || 'unknown';
   const preview = hoverPreview(dimension);
 
-  // Decide whether tooltip goes above or below based on available space
   useEffect(() => {
     if (hovered && badgeRef.current) {
       const rect = badgeRef.current.getBoundingClientRect();
@@ -110,7 +108,6 @@ function DimensionBadge({
 
   return (
     <div className="relative" ref={badgeRef}>
-      {/* Badge */}
       <button
         type="button"
         onClick={onToggle}
@@ -120,7 +117,7 @@ function DimensionBadge({
           w-full rounded border px-2.5 py-1.5 text-xs font-semibold cursor-pointer
           transition-all duration-150 select-none
           ${badgeColors[status]}
-          ${isExpanded ? 'ring-2 ring-indigo-400 ring-offset-1' : 'hover:shadow-md'}
+          ${isExpanded ? 'ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--bg-card-solid)]' : 'hover:shadow-md'}
         `}
       >
         <div className="flex items-center justify-between gap-1.5">
@@ -139,30 +136,30 @@ function DimensionBadge({
         </div>
       </button>
 
-      {/* Hover tooltip — quick intel preview */}
       {hovered && !isExpanded && (
         <div
           ref={tooltipRef}
           onMouseEnter={showHover}
           onMouseLeave={hideHover}
-          className={`
-            absolute z-50 w-64 bg-gray-900 text-white rounded-lg shadow-lg px-3 py-2 text-xs leading-relaxed
-            pointer-events-auto
-          `}
-          style={
-            tooltipSide === 'top'
+          className="absolute z-50 w-64 rounded-lg shadow-lg px-3 py-2 text-xs leading-relaxed pointer-events-auto"
+          style={{
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+            ...(tooltipSide === 'top'
               ? { bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 6 }
-              : { top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 6 }
-          }
+              : { top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 6 }),
+          }}
         >
           <p className="line-clamp-3">{preview}</p>
           <div
-            className="absolute w-2 h-2 bg-gray-900 rotate-45"
-            style={
-              tooltipSide === 'top'
+            className="absolute w-2 h-2 rotate-45"
+            style={{
+              background: 'var(--bg-elevated)',
+              ...(tooltipSide === 'top'
                 ? { bottom: -4, left: '50%', transform: 'translateX(-50%) rotate(45deg)' }
-                : { top: -4, left: '50%', transform: 'translateX(-50%) rotate(45deg)' }
-            }
+                : { top: -4, left: '50%', transform: 'translateX(-50%) rotate(45deg)' }),
+            }}
           />
         </div>
       )}
@@ -187,14 +184,15 @@ function ExpandedDetail({
   const hasQuestion = Boolean(dimension.question);
 
   return (
-    <div className={`col-span-2 rounded-lg border ${expandBorderColors[status]} ${expandAccent[status]} p-4 animate-in fade-in duration-150`}>
-      {/* Top row: title + close */}
+    <div
+      className={`col-span-2 rounded-lg border p-4 animate-in fade-in duration-150 ${expandBorderColors[status]} ${expandAccent[status]}`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-white ${dotColors[status]}`}>
             {letterMap[dimensionKey]}
           </span>
-          <span className="text-sm font-semibold text-gray-900">{labels[dimensionKey]}</span>
+          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{labels[dimensionKey]}</span>
           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${badgeColors[status]}`}>
             {status === 'known' ? 'Confirmed' : status === 'partial' ? 'Partial Intel' : 'No Intel'}
           </span>
@@ -202,7 +200,8 @@ function ExpandedDetail({
         <button
           type="button"
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition-colors p-0.5"
+          className="transition-colors p-0.5"
+          style={{ color: 'var(--text-muted)' }}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -210,46 +209,41 @@ function ExpandedDetail({
         </button>
       </div>
 
-      {/* Content sections */}
       <div className="space-y-3">
-        {/* Evidence: what we know */}
         {hasEvidence && (
-          <div className="bg-white rounded border border-green-200 p-3">
+          <div className="rounded border border-emerald-800/30 p-3" style={{ background: 'rgba(16, 185, 129, 0.08)' }}>
             <div className="flex items-center gap-1.5 mb-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-green-700">What We Know</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-400">What We Know</span>
             </div>
-            <p className="text-sm text-gray-800 leading-relaxed">{dimension.evidence}</p>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{dimension.evidence}</p>
           </div>
         )}
 
-        {/* Gap: what's missing */}
         {hasGap && (
-          <div className="bg-white rounded border border-amber-200 p-3">
+          <div className="rounded border border-amber-800/30 p-3" style={{ background: 'rgba(245, 158, 11, 0.08)' }}>
             <div className="flex items-center gap-1.5 mb-1">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Gap to Close</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-400">Gap to Close</span>
             </div>
-            <p className="text-sm text-gray-800 leading-relaxed">{dimension.gap}</p>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{dimension.gap}</p>
           </div>
         )}
 
-        {/* Question: what to ask */}
         {hasQuestion && (
-          <div className="bg-white rounded border border-indigo-200 p-3">
+          <div className="rounded border p-3" style={{ background: 'rgba(212, 165, 116, 0.06)', borderColor: 'rgba(212, 165, 116, 0.2)' }}>
             <div className="flex items-center gap-1.5 mb-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-indigo-700">Discovery Question</span>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--accent)' }}>Discovery Question</span>
             </div>
-            <p className="text-sm text-gray-800 leading-relaxed italic">
+            <p className="text-sm leading-relaxed italic" style={{ color: 'var(--text-secondary)' }}>
               &ldquo;{dimension.question}&rdquo;
             </p>
           </div>
         )}
 
-        {/* Fallback when no enriched data */}
         {!hasEvidence && !hasGap && !hasQuestion && (
-          <p className="text-sm text-gray-400 italic">
+          <p className="text-sm italic" style={{ color: 'var(--text-muted)' }}>
             No enriched detail available. Re-run the pipeline to generate per-dimension intel.
           </p>
         )}
@@ -268,7 +262,6 @@ export default function MeddpiccBadge({
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const keys = Object.keys(labels);
 
-  // Build rows of 2 so we can inject the expanded panel between rows
   const rows: string[][] = [];
   for (let i = 0; i < keys.length; i += 2) {
     rows.push(keys.slice(i, i + 2));
@@ -277,11 +270,9 @@ export default function MeddpiccBadge({
   return (
     <div className="space-y-2">
       {rows.map((row) => {
-        // Check if expanded item lives in this row
         const expandedInRow = row.find((k) => k === expandedKey);
         return (
           <div key={row.join('-')}>
-            {/* Badge row */}
             <div className="grid grid-cols-2 gap-2">
               {row.map((key) => {
                 const raw = meddpicc[key] || 'unknown';
@@ -298,7 +289,6 @@ export default function MeddpiccBadge({
               })}
             </div>
 
-            {/* Expanded detail — slides in below the row it belongs to */}
             {expandedInRow && (
               <div className="grid grid-cols-1 mt-2">
                 <ExpandedDetail
