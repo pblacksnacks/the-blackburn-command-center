@@ -203,26 +203,48 @@ function toObjArray(v: unknown): Array<{ objection: string; response: string }> 
   return [];
 }
 
-export async function downloadCallPrepPptx(email: string, data: CallPrep): Promise<void> {
-  // Normalize fields that the API may have returned as strings
-  const normalized = {
+function normalizeCallPrep(data: CallPrep) {
+  return {
     ...data,
     suggested_agenda: toArray(data.suggested_agenda),
     discovery_questions: toArray(data.discovery_questions),
     objection_prep: toObjArray(data.objection_prep),
     do_not_say: toArray(data.do_not_say),
   };
-  const res = await fetch(`${BASE}/leads/${encodeURIComponent(email)}/call-prep-pptx`, {
+}
+
+async function downloadBlob(url: string, body: unknown, filename: string): Promise<void> {
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(normalized),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
+  const blobUrl = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = `call-prep-${email.split('@')[0]}.pptx`;
+  a.href = blobUrl;
+  a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(blobUrl);
+}
+
+export async function downloadCallPrepPdf(email: string, data: CallPrep): Promise<void> {
+  const normalized = normalizeCallPrep(data);
+  const slug = email.split('@')[0];
+  await downloadBlob(
+    `${BASE}/leads/${encodeURIComponent(email)}/call-prep-pdf`,
+    normalized,
+    `pre-call-brief-${slug}.pdf`,
+  );
+}
+
+export async function downloadCallPrepPptx(email: string, data: CallPrep): Promise<void> {
+  const normalized = normalizeCallPrep(data);
+  const slug = email.split('@')[0];
+  await downloadBlob(
+    `${BASE}/leads/${encodeURIComponent(email)}/call-prep-pptx`,
+    normalized,
+    `customer-deck-${slug}.pptx`,
+  );
 }

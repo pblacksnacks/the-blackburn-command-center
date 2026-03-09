@@ -5,11 +5,11 @@ import {
   Loader2, Search, Briefcase, MapPin, Calendar, RefreshCw,
   Zap, X, Copy, Check, Download, Shield, Swords, TrendingUp,
   MessageSquare, AlertTriangle, Crosshair, Rocket, Ban, ClipboardList,
-  Send, ChevronDown, ChevronRight,
+  Send, ChevronDown, ChevronRight, FileText,
 } from 'lucide-react';
 import {
   fetchLead, fetchLinkedInProfile, searchLinkedIn, fetchLinkedInSearchStatus,
-  fetchResearch, generateCallPrep, downloadCallPrepPptx, generateDraftEmail,
+  fetchResearch, generateCallPrep, downloadCallPrepPdf, downloadCallPrepPptx, generateDraftEmail,
   type Lead, type ContactLinkedIn, type CompanyResearch, type CallPrep, type DraftEmail,
 } from '../api';
 import GradeBadge from '../components/GradeBadge';
@@ -166,7 +166,9 @@ function CallPrepModal({
   loading,
   error,
   onClose,
+  onExportPdf,
   onExportPptx,
+  exportingPdf,
   exportingPptx,
   companyName,
 }: {
@@ -174,7 +176,9 @@ function CallPrepModal({
   loading: boolean;
   error: string | null;
   onClose: () => void;
+  onExportPdf: () => void;
   onExportPptx: () => void;
+  exportingPdf: boolean;
   exportingPptx: boolean;
   companyName: string;
 }) {
@@ -309,13 +313,22 @@ function CallPrepModal({
             {data && (
               <>
                 <button
+                  onClick={onExportPdf}
+                  disabled={exportingPdf}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors disabled:opacity-50"
+                  style={{ background: 'rgba(245, 240, 232, 0.06)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                >
+                  {exportingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                  Pre-Call Brief (PDF)
+                </button>
+                <button
                   onClick={onExportPptx}
                   disabled={exportingPptx}
                   className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors disabled:opacity-50"
                   style={{ background: 'rgba(245, 240, 232, 0.06)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
                 >
                   {exportingPptx ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                  Export PPTX
+                  Customer Deck (PPTX)
                 </button>
                 <button
                   onClick={handleCopy}
@@ -719,6 +732,7 @@ export default function LeadDetailPage() {
   const [callPrep, setCallPrep] = useState<CallPrep | null>(null);
   const [callPrepLoading, setCallPrepLoading] = useState(false);
   const [callPrepError, setCallPrepError] = useState<string | null>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingPptx, setExportingPptx] = useState(false);
 
   // Draft email state
@@ -828,6 +842,18 @@ export default function LeadDetailPage() {
       setCallPrepError(e instanceof Error ? e.message : 'Failed to generate');
     } finally {
       setCallPrepLoading(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!email || !callPrep) return;
+    setExportingPdf(true);
+    try {
+      await downloadCallPrepPdf(decodeURIComponent(email), callPrep);
+    } catch (e) {
+      console.error('PDF export failed:', e);
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -955,7 +981,9 @@ export default function LeadDetailPage() {
           loading={callPrepLoading}
           error={callPrepError}
           onClose={() => setCallPrepOpen(false)}
+          onExportPdf={handleExportPdf}
           onExportPptx={handleExportPptx}
+          exportingPdf={exportingPdf}
           exportingPptx={exportingPptx}
           companyName={lead.company_name || 'Prospect'}
         />
