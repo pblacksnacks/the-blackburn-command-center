@@ -5,11 +5,12 @@ import {
   Loader2, Search, Briefcase, MapPin, Calendar, RefreshCw,
   Zap, X, Copy, Check, Download, Shield, Swords, TrendingUp,
   MessageSquare, AlertTriangle, Crosshair, Rocket, Ban, ClipboardList,
+  Send, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import {
   fetchLead, fetchLinkedInProfile, searchLinkedIn, fetchLinkedInSearchStatus,
-  fetchResearch, generateCallPrep, downloadCallPrepPptx,
-  type Lead, type ContactLinkedIn, type CompanyResearch, type CallPrep,
+  fetchResearch, generateCallPrep, downloadCallPrepPptx, generateDraftEmail,
+  type Lead, type ContactLinkedIn, type CompanyResearch, type CallPrep, type DraftEmail,
 } from '../api';
 import GradeBadge from '../components/GradeBadge';
 import MeddpiccBadge from '../components/MeddpiccBadge';
@@ -493,6 +494,214 @@ function CallPrepModal({
   );
 }
 
+/* ── Draft Email Modal ────────────────────────────────────────── */
+
+function DraftEmailModal({
+  data,
+  loading,
+  error,
+  onClose,
+  onRegenerate,
+  lead,
+}: {
+  data: DraftEmail | null;
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+  onRegenerate: () => void;
+  lead: Lead;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+
+  const handleCopy = () => {
+    if (!data) return;
+    navigator.clipboard.writeText(`Subject: ${data.subject}\n\n${data.body}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const gmailUrl = data
+    ? `mailto:${lead.sender_email}?subject=${encodeURIComponent(data.subject)}&body=${encodeURIComponent(data.body)}`
+    : '#';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto"
+      style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="w-full max-w-2xl my-8 rounded-xl overflow-hidden"
+        style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+      >
+        {/* Modal header */}
+        <div
+          className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
+          style={{ background: 'rgba(18, 17, 16, 0.95)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(8px)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="flex items-center justify-center w-8 h-8 rounded-lg"
+              style={{ background: 'rgba(212, 165, 116, 0.15)' }}
+            >
+              <Send className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                Draft Outreach
+              </h2>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                AI-generated personalized email for {lead.sender_name || lead.sender_email}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div className="p-6 space-y-4">
+            <div className="flex items-center gap-3 mb-4">
+              <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--accent)' }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Crafting personalized outreach with Claude...
+              </span>
+            </div>
+            <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <div className="space-y-3">
+                <div className="h-4 rounded w-48 animate-pulse" style={{ background: 'rgba(212, 165, 116, 0.12)' }} />
+                <div className="h-3 rounded w-64 animate-pulse" style={{ background: 'rgba(245, 240, 232, 0.06)', animationDelay: '0.1s' }} />
+                <div className="h-3 rounded w-56 animate-pulse" style={{ background: 'rgba(245, 240, 232, 0.06)', animationDelay: '0.15s' }} />
+                <div className="mt-4 space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-3 rounded animate-pulse" style={{ background: 'rgba(245, 240, 232, 0.06)', width: `${90 - i * 8}%`, animationDelay: `${0.2 + i * 0.05}s` }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="p-6">
+            <div className="rounded-lg p-4" style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <p className="text-sm text-red-400">Failed to generate email: {error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Email preview */}
+        {data && (
+          <div className="p-6 animate-fade-in-up">
+            {/* Email envelope */}
+            <div
+              className="rounded-lg overflow-hidden"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              {/* Email header fields */}
+              <div className="px-5 py-4 space-y-2" style={{ borderBottom: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="w-16 text-right flex-shrink-0" style={{ color: 'var(--text-muted)' }}>From</span>
+                  <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Parker Blackburn</span>
+                  <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(212, 165, 116, 0.1)', color: 'var(--accent)' }}>Anthropic</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="w-16 text-right flex-shrink-0" style={{ color: 'var(--text-muted)' }}>To</span>
+                  <span style={{ color: 'var(--text-primary)' }}>
+                    {lead.sender_name && <span className="font-medium">{lead.sender_name} </span>}
+                    <span style={{ color: 'var(--text-secondary)' }}>&lt;{lead.sender_email}&gt;</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="w-16 text-right flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Subject</span>
+                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{data.subject}</span>
+                </div>
+              </div>
+
+              {/* Email body */}
+              <div className="px-5 py-5">
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                  {data.body}
+                </p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 mt-4">
+              <button
+                onClick={handleCopy}
+                className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors"
+                style={{ background: 'rgba(212, 165, 116, 0.1)', border: '1px solid rgba(212, 165, 116, 0.2)', color: 'var(--accent)' }}
+              >
+                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                {copied ? 'Copied' : 'Copy to Clipboard'}
+              </button>
+              <a
+                href={gmailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors"
+                style={{ background: 'var(--accent)', color: '#121110' }}
+              >
+                <Mail className="h-3 w-3" />
+                Open in Gmail
+              </a>
+              <button
+                onClick={onRegenerate}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors disabled:opacity-50"
+                style={{ background: 'rgba(245, 240, 232, 0.06)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              >
+                <RefreshCw className="h-3 w-3" />
+                Regenerate
+              </button>
+            </div>
+
+            {/* Follow-up collapsible */}
+            <div className="mt-6">
+              <button
+                onClick={() => setFollowUpOpen(!followUpOpen)}
+                className="flex items-center gap-2 w-full text-left text-sm font-medium py-2 transition-colors"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {followUpOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                Follow-up if no response (3 days)
+              </button>
+
+              {followUpOpen && (
+                <div
+                  className="rounded-lg overflow-hidden mt-2 animate-fade-in-up"
+                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                >
+                  <div className="px-5 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="w-16 text-right flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Subject</span>
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{data.follow_up_subject}</span>
+                    </div>
+                  </div>
+                  <div className="px-5 py-4">
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                      {data.follow_up_body}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Page component ───────────────────────────────────────────── */
 
 export default function LeadDetailPage() {
@@ -511,6 +720,12 @@ export default function LeadDetailPage() {
   const [callPrepLoading, setCallPrepLoading] = useState(false);
   const [callPrepError, setCallPrepError] = useState<string | null>(null);
   const [exportingPptx, setExportingPptx] = useState(false);
+
+  // Draft email state
+  const [draftEmailOpen, setDraftEmailOpen] = useState(false);
+  const [draftEmail, setDraftEmail] = useState<DraftEmail | null>(null);
+  const [draftEmailLoading, setDraftEmailLoading] = useState(false);
+  const [draftEmailError, setDraftEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!email) return;
@@ -628,15 +843,31 @@ export default function LeadDetailPage() {
     }
   };
 
+  const handleDraftEmail = async () => {
+    if (!email) return;
+    setDraftEmailOpen(true);
+    setDraftEmailLoading(true);
+    setDraftEmailError(null);
+    setDraftEmail(null);
+    try {
+      const result = await generateDraftEmail(decodeURIComponent(email));
+      setDraftEmail(result);
+    } catch (e) {
+      setDraftEmailError(e instanceof Error ? e.message : 'Failed to generate');
+    } finally {
+      setDraftEmailLoading(false);
+    }
+  };
+
   // Lock body scroll when modal is open
   useEffect(() => {
-    if (callPrepOpen) {
+    if (callPrepOpen || draftEmailOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
-  }, [callPrepOpen]);
+  }, [callPrepOpen, draftEmailOpen]);
 
   if (error) return <div className="text-red-400 p-4">Error: {error}</div>;
   if (!lead) return <div className="p-4" style={{ color: 'var(--text-muted)' }}>Loading...</div>;
@@ -677,6 +908,19 @@ export default function LeadDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={handleDraftEmail}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                style={{
+                  background: 'rgba(212, 165, 116, 0.12)',
+                  border: '1px solid rgba(212, 165, 116, 0.25)',
+                  color: 'var(--accent)',
+                  boxShadow: '0 2px 8px rgba(212, 165, 116, 0.1)',
+                }}
+              >
+                <Send className="h-4 w-4" />
+                Draft Outreach
+              </button>
+              <button
                 onClick={handleCallPrep}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 style={{
@@ -714,6 +958,18 @@ export default function LeadDetailPage() {
           onExportPptx={handleExportPptx}
           exportingPptx={exportingPptx}
           companyName={lead.company_name || 'Prospect'}
+        />
+      )}
+
+      {/* Draft Email Modal */}
+      {draftEmailOpen && (
+        <DraftEmailModal
+          data={draftEmail}
+          loading={draftEmailLoading}
+          error={draftEmailError}
+          onClose={() => setDraftEmailOpen(false)}
+          onRegenerate={handleDraftEmail}
+          lead={lead}
         />
       )}
 

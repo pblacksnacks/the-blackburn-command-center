@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from server.routes import leads, research, briefings, pipeline, linkedin, call_prep
+from server.routes import leads, research, briefings, pipeline, linkedin, call_prep, draft_email
 
 app = FastAPI(title="Email Triage Dashboard", version="1.0.0")
 
@@ -25,6 +25,7 @@ app.include_router(briefings.router)
 app.include_router(pipeline.router)
 app.include_router(linkedin.router)
 app.include_router(call_prep.router)
+app.include_router(draft_email.router)
 
 # Serve report files (pptx, markdown)
 reports_dir = Path(__file__).resolve().parent.parent / "reports"

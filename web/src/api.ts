@@ -175,11 +175,47 @@ export interface CallPrep {
 export const generateCallPrep = (email: string) =>
   post<CallPrep>(`/leads/${encodeURIComponent(email)}/call-prep`, {});
 
+export interface DraftEmail {
+  subject: string;
+  body: string;
+  follow_up_subject: string;
+  follow_up_body: string;
+}
+
+export const generateDraftEmail = (email: string) =>
+  post<DraftEmail>(`/leads/${encodeURIComponent(email)}/draft-email`, {});
+
+function toArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map(String);
+  if (typeof v === 'string') return v.split('\n').filter(Boolean);
+  return [];
+}
+
+function toObjArray(v: unknown): Array<{ objection: string; response: string }> {
+  if (Array.isArray(v))
+    return v.map((x) =>
+      typeof x === 'object' && x !== null
+        ? { objection: String((x as Record<string, unknown>).objection ?? ''), response: String((x as Record<string, unknown>).response ?? '') }
+        : { objection: String(x), response: '' },
+    );
+  if (typeof v === 'string')
+    return v.split('\n').filter(Boolean).map((s) => ({ objection: s, response: '' }));
+  return [];
+}
+
 export async function downloadCallPrepPptx(email: string, data: CallPrep): Promise<void> {
+  // Normalize fields that the API may have returned as strings
+  const normalized = {
+    ...data,
+    suggested_agenda: toArray(data.suggested_agenda),
+    discovery_questions: toArray(data.discovery_questions),
+    objection_prep: toObjArray(data.objection_prep),
+    do_not_say: toArray(data.do_not_say),
+  };
   const res = await fetch(`${BASE}/leads/${encodeURIComponent(email)}/call-prep-pptx`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify(normalized),
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   const blob = await res.blob();

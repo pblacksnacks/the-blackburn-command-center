@@ -11,7 +11,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from server.db import get_lead, get_lead_emails, get_linkedin_one, get_research_one
 
@@ -21,6 +21,37 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 router = APIRouter(prefix="/api/leads", tags=["call-prep"])
+
+
+# ── Coercion helpers ─────────────────────────────────────────────
+
+
+def _coerce_str_list(v: object) -> list[str]:
+    """Accept a list or a newline-delimited string."""
+    if isinstance(v, list):
+        return [str(x) for x in v]
+    if isinstance(v, str):
+        return [line for line in v.split("\n") if line.strip()]
+    return []
+
+
+def _coerce_objection_list(v: object) -> list[dict]:
+    """Accept a list of dicts, a list of strings, or a single string."""
+    if isinstance(v, list):
+        out: list[dict] = []
+        for item in v:
+            if isinstance(item, dict):
+                out.append({
+                    "objection": str(item.get("objection", "")),
+                    "response": str(item.get("response", "")),
+                })
+            else:
+                out.append({"objection": str(item), "response": ""})
+        return out
+    if isinstance(v, str):
+        return [{"objection": line, "response": ""} for line in v.split("\n") if line.strip()]
+    return []
+
 
 # ── Response schema ──────────────────────────────────────────────
 
@@ -41,18 +72,28 @@ class CallPrepResponse(BaseModel):
 
 
 class CallPrepPptxRequest(BaseModel):
-    contact_summary: str
-    company_snapshot: str
-    why_theyre_here: str
-    current_stack: str
-    suggested_agenda: list[str]
-    discovery_questions: list[str]
-    objection_prep: list[dict]
-    competitive_positioning: str
-    land_strategy: str
-    expand_strategy: str
-    proposed_next_step: str
-    do_not_say: list[str]
+    contact_summary: str = ""
+    company_snapshot: str = ""
+    why_theyre_here: str = ""
+    current_stack: str = ""
+    suggested_agenda: list[str] = []
+    discovery_questions: list[str] = []
+    objection_prep: list[dict] = []
+    competitive_positioning: str = ""
+    land_strategy: str = ""
+    expand_strategy: str = ""
+    proposed_next_step: str = ""
+    do_not_say: list[str] = []
+
+    @field_validator("suggested_agenda", "discovery_questions", "do_not_say", mode="before")
+    @classmethod
+    def _coerce_str_lists(cls, v: object) -> list[str]:
+        return _coerce_str_list(v)
+
+    @field_validator("objection_prep", mode="before")
+    @classmethod
+    def _coerce_objections(cls, v: object) -> list[dict]:
+        return _coerce_objection_list(v)
 
 
 # ── Helpers ──────────────────────────────────────────────────────
