@@ -213,26 +213,43 @@ DEMO_EMAILS = [
         ),
         received_at="2026-03-07T11:00:00Z",
     ),
-    # 9. Ironclad — dual motion, strong urgency
+    # 9. Ironclad — dual motion, strong urgency, real research
     RawEmail(
         email_id="demo-009",
-        sender_email="cto@ironcladapp.com",
+        sender_email="jason@ironcladapp.com",
         sender_name="Jason Boehmig",
-        subject="URGENT: Claude Enterprise for contract AI — board presentation next week",
+        subject="AI vendor evaluation -- board presentation Thursday",
         body=(
-            "Hi,\n\n"
-            "Jason Boehmig, CEO at Ironclad. We're a contract lifecycle management platform "
-            "used by L'Oreal, Mastercard, and OpenAI (ironically).\n\n"
-            "Two priorities:\n\n"
-            "1. Product: We're building AI contract review and redlining powered by LLMs. "
-            "We've been using GPT-4 but accuracy on legal nuance is a concern. Our GC flagged "
-            "three errors last month that could have caused real problems.\n\n"
-            "2. Internal: 600 employees need access to Claude for legal research, drafting, "
-            "and analysis. We want Claude Enterprise with SSO.\n\n"
-            "I'm presenting our AI strategy to the board next Thursday. Need to have a vendor "
-            "recommendation locked in before then. Budget range: $300-500K annually.\n\n"
-            "Can someone senior call me today?\n\n"
-            "Jason Boehmig\nCEO, Ironclad"
+            "Hi team,\n\n"
+            "I'm Jason Boehmig, Co-founder and Executive Chairman at Ironclad. We're the "
+            "leading contract lifecycle management platform -- $200M ARR, named a Gartner "
+            "Magic Quadrant Leader three years running, serving enterprise customers including "
+            "Salesforce, L'Oreal, Mastercard, and OpenAI.\n\n"
+            "I'm reaching out because we're at a critical inflection point with our AI "
+            "strategy. Our AI Assist product and our newer Jurist legal assistant are "
+            "currently built on GPT-4, and we're experiencing accuracy issues that are "
+            "creating real risk. Our General Counsel Jasmine Singh flagged three contract "
+            "analysis errors last month that could have exposed our enterprise customers "
+            "to liability -- that's unacceptable when you're processing legal documents "
+            "for companies like Mastercard and Cisco.\n\n"
+            "We just hired a new VP of AI (Mingsheng Hong) and CPO (Herman Man) specifically "
+            "to scale our AI contracting capabilities. Our engineering team is already "
+            "evaluating multi-model architectures -- our job postings explicitly reference "
+            "Claude alongside other LLM providers. We need a model that handles legal "
+            "nuance, complex reasoning, and delivers enterprise-grade reliability.\n\n"
+            "Here's what we need:\n"
+            "1. Claude API for our contract review and redlining product -- replacing GPT-4 "
+            "where accuracy matters most\n"
+            "2. Claude Enterprise with SSO for our 793 employees doing legal research, "
+            "drafting, and analysis\n"
+            "3. A partner who understands legal tech -- we're not just buying an API, we're "
+            "building the future of AI contracting\n\n"
+            "We have $300-500K in budget allocated and I'm presenting vendor recommendations "
+            "to our board (which includes partners from Accel, Sequoia, and Franklin "
+            "Templeton) next Thursday. Our $3.2B valuation and $333M in funding means we "
+            "move fast when we find the right partner.\n\n"
+            "Can someone senior get on a call with me and our new VP of AI this week?\n\n"
+            "Jason Boehmig\nExecutive Chairman & Co-founder, Ironclad"
         ),
         received_at="2026-03-07T11:15:00Z",
     ),
@@ -367,35 +384,6 @@ DEMO_EMAILS = [
         ),
         received_at="2026-03-07T14:00:00Z",
     ),
-    # 16. StubHub — enterprise AI standardization, CTO direct, competitive displacement
-    RawEmail(
-        email_id="demo-016",
-        sender_email="art.yegorov@stubhub.com",
-        sender_name="Art Yegorov",
-        subject="Evaluating Claude for enterprise AI standardization",
-        body=(
-            "Hi,\n\n"
-            "I'm the CTO at StubHub. We recently went public (NYSE: STUB) and I'm leading "
-            "an initiative to standardize our AI tooling across the organization.\n\n"
-            "We currently have multiple teams using OpenAI across customer support, internal "
-            "productivity, and some agentic workflow prototypes — but without central oversight. "
-            "We've been hitting hallucination issues that have made it upstream to product, and "
-            "I want to evaluate alternatives before we commit to a -term enterprise agreement "
-            "with any single provider.\n\n"
-            "We're on GCP and use Vertex AI today, so integration there is a requirement. "
-            "Our priority use cases are:\n"
-            "- Internal productivity tools for engineering and ops (~300 engineers)\n"
-            "- Customer support automation — we handle 120M+ buyers annually across 90 countries\n"
-            "- Agentic workflows for our ticket pricing intelligence and fraud detection systems\n\n"
-            "I'm particularly interested in Claude's consistency and safety track record versus "
-            "what we've experienced so far. I have final approval on major technology purchases "
-            "and want to see a technical evaluation completed this quarter.\n\n"
-            "Let's set up an intro call. What does next week look like?\n\n"
-            "Art Yegorov\nCTO, StubHub"
-        ),
-        received_at="2026-03-08T09:30:00Z",
-    ),
-
 ]
 
 
@@ -411,7 +399,9 @@ class DemoEmailSource:
 # Pipeline stages
 # ---------------------------------------------------------------------------
 
-DB_PATH = "triage.db"
+GITLAB_MODE = os.environ.get("GITLAB_MODE", "false").lower() == "true"
+
+DB_PATH = os.environ.get("TRIAGE_DB", "triage.db")
 REPORTS_DIR = "reports"
 
 

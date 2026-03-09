@@ -12,10 +12,10 @@ const deptConfig = [
 ] as const;
 
 const products = [
-  { key: 'Claude API', price: 3600 },
-  { key: 'Claude.ai', price: 720 },
-  { key: 'Claude Code', price: 1440 },
-  { key: 'Claude Enterprise', price: 1440 },
+  { key: 'Claude API', price: 4800 },
+  { key: 'Claude.ai', price: 1200 },
+  { key: 'Claude Code', price: 2400 },
+  { key: 'Claude Enterprise', price: 1800 },
 ] as const;
 
 /* Adoption rate: fraction of dept employees expected to use each product */

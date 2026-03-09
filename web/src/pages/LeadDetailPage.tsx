@@ -89,7 +89,12 @@ function buildCalendarUrl(lead: Lead): string {
 
 function parseEmployeeRange(range: string | null): number | null {
   if (!range) return null;
-  const nums = range.match(/(\d[\d,]*)/g);
+  // Strip HTML/XML tags (e.g. <cite>) that may wrap research output
+  const clean = range.replace(/<[^>]*>/g, '');
+  // Prefer "approximately N" or "~N" for a precise count
+  const approxMatch = clean.match(/(?:approximately|approx\.?|~)\s*([\d,]+)/i);
+  if (approxMatch) return parseInt(approxMatch[1].replace(/,/g, ''), 10) || null;
+  const nums = clean.match(/(\d[\d,]*)/g);
   if (!nums) return null;
   const parsed = nums.map((s) => parseInt(s.replace(/,/g, ''), 10));
   if (parsed.length >= 2) return Math.round((parsed[0] + parsed[1]) / 2);
@@ -1192,8 +1197,77 @@ export default function LeadDetailPage() {
         </div>
       </div>
 
+      {/* Competitive Battle Card */}
+      <div className="rounded-xl p-5 mb-4 animate-fade-in-up stagger-8" style={cardStyle}>
+        <h2 className="text-sm font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <Swords className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+          Competitive Battle Card
+          {lead.current_ai_provider && (
+            <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded-full" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>
+              vs {lead.current_ai_provider}
+            </span>
+          )}
+        </h2>
+        <div className="grid grid-cols-3 gap-4">
+          {/* Their Weakness */}
+          <div className="rounded-lg p-4" style={{ background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: '#f87171' }}>Their Weakness</h3>
+            <ul className="space-y-2">
+              {(lead.competitive_signals_json || []).map((s, i) => (
+                <li key={i} className="text-sm flex items-start gap-2" style={{ color: 'var(--text-secondary)' }}>
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: '#f87171' }} />
+                  {s}
+                </li>
+              ))}
+              {/openai|gpt-?4/i.test(lead.current_ai_provider || '') && (
+                <li className="text-sm flex items-start gap-2" style={{ color: 'var(--text-secondary)' }}>
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: '#f87171' }} />
+                  General-purpose model not optimized for domain-specific reasoning
+                </li>
+              )}
+              {(lead.competitive_signals_json || []).length === 0 && !/openai|gpt-?4/i.test(lead.current_ai_provider || '') && (
+                <li className="text-sm" style={{ color: 'var(--text-muted)' }}>No signals detected</li>
+              )}
+            </ul>
+          </div>
+          {/* Our Strength */}
+          <div className="rounded-lg p-4" style={{ background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: '#34d399' }}>Our Strength</h3>
+            <ul className="space-y-2">
+              {[
+                'Constitutional AI designed for accuracy and safety',
+                'Superior performance on complex reasoning tasks',
+                'Enterprise-grade security with SSO and compliance controls',
+                'Dedicated migration support from competing providers',
+              ].map((s, i) => (
+                <li key={i} className="text-sm flex items-start gap-2" style={{ color: 'var(--text-secondary)' }}>
+                  <Shield className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: '#34d399' }} />
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {/* How to Win */}
+          <div className="rounded-lg p-4" style={{ background: 'rgba(212, 165, 116, 0.06)', border: '1px solid rgba(212, 165, 116, 0.15)' }}>
+            <h3 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--accent)' }}>How to Win</h3>
+            <ul className="space-y-2">
+              {(lead.partnership_synergies_json || []).slice(0, 2).map((s, i) => (
+                <li key={i} className="text-sm flex items-start gap-2" style={{ color: 'var(--text-secondary)' }}>
+                  <Rocket className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                  {s}
+                </li>
+              ))}
+              <li className="text-sm flex items-start gap-2" style={{ color: 'var(--text-secondary)' }}>
+                <Rocket className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                Propose rapid proof-of-concept on their highest-risk use case
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       {/* Reasoning */}
-      <div className="rounded-lg p-4 mb-4 animate-fade-in-up stagger-8" style={cardStyle}>
+      <div className="rounded-lg p-4 mb-4 animate-fade-in-up stagger-9" style={cardStyle}>
         <h2 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>Scoring Reasoning</h2>
         <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{lead.last_reasoning}</p>
       </div>

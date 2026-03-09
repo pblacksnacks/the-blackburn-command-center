@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Building2, Globe, Users, Newspaper, Linkedin, ExternalLink, Briefcase, MapPin } from 'lucide-react';
+import { Building2, Globe, Users, Newspaper, Linkedin, ExternalLink, Briefcase, MapPin, Search } from 'lucide-react';
 import { fetchResearch, fetchLinkedInProfiles, type CompanyResearch, type ContactLinkedIn } from '../api';
 
 const formatLabel = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+function stripCiteTags(text: string): string {
+  if (!text) return '';
+  return text.replace(/<\/?cite[^>]*>/g, '');
+}
 
 const cardStyle: React.CSSProperties = {
   background: 'var(--bg-card)',
@@ -63,42 +68,64 @@ export default function ResearchPage({ refreshKey }: { refreshKey: number }) {
             {companies.map((c, idx) => (
               <div
                 key={c.company_key}
-                className={`card-hover rounded-lg p-4 cursor-pointer animate-fade-in-up stagger-${Math.min(idx + 1, 9)}`}
-                style={cardStyle}
+                className={`card-hover rounded-xl p-5 cursor-pointer animate-fade-in-up stagger-${Math.min(idx + 1, 9)}`}
+                style={{ ...cardStyle, minHeight: '160px', display: 'flex', flexDirection: 'column' }}
                 onClick={() => setExpanded(expanded === c.company_key ? null : c.company_key)}
               >
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h2 className="font-semibold flex items-center gap-1" style={{ color: 'var(--text-primary)' }}>
-                      <Building2 className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
+                    <h2 className="font-semibold text-base flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                      <Building2 className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--accent)' }} />
                       {c.company_name}
                     </h2>
                     {c.company_domain && (
-                      <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                      <span className="text-xs flex items-center gap-1 mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         <Globe className="h-3 w-3" /> {c.company_domain}
                       </span>
                     )}
                   </div>
-                  <div className="text-right text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {c.employee_range && <div className="flex items-center gap-1"><Users className="h-3 w-3" /> {c.employee_range}</div>}
-                    {c.funding_stage && <div>{formatLabel(c.funding_stage)}</div>}
+                  <div className="text-right text-xs space-y-0.5 flex-shrink-0 ml-4">
+                    {c.employee_range && (
+                      <div className="flex items-center gap-1 justify-end" style={{ color: 'var(--text-secondary)' }}>
+                        <Users className="h-3 w-3" style={{ color: 'var(--text-muted)' }} /> {stripCiteTags(c.employee_range)}
+                      </div>
+                    )}
+                    {c.funding_stage && (
+                      <div
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={{ background: 'rgba(212, 165, 116, 0.12)', color: 'var(--accent)' }}
+                      >
+                        {formatLabel(c.funding_stage)}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <p className="text-sm line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{c.description}</p>
+
+                {/* Description — 3-line clamp when collapsed */}
+                <p
+                  className={`text-sm flex-1 ${expanded === c.company_key ? '' : 'line-clamp-3'}`}
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {c.description ? stripCiteTags(c.description) : ''}
+                </p>
+                {!c.description && (
+                  <div className="flex items-center gap-1.5 text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
+                    <Search className="h-3 w-3" /> Research pending
+                  </div>
+                )}
 
                 {expanded === c.company_key && (
                   <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-                    {c.description && <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>{c.description}</p>}
                     {(c.recent_news_json || []).length > 0 && (
                       <div>
-                        <h3 className="text-xs font-semibold uppercase mb-1 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                        <h3 className="text-xs font-semibold uppercase mb-2 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                           <Newspaper className="h-3 w-3" /> Recent News
                         </h3>
-                        <ul className="space-y-1">
+                        <ul className="space-y-2">
                           {c.recent_news_json.map((n, i) => (
                             <li key={i} className="text-sm">
-                              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{n.title}</span>
-                              <span style={{ color: 'var(--text-muted)' }}> — {n.summary}</span>
+                              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{stripCiteTags(n.title)}</span>
+                              <span style={{ color: 'var(--text-muted)' }}> — {stripCiteTags(n.summary)}</span>
                             </li>
                           ))}
                         </ul>
@@ -125,8 +152,8 @@ export default function ResearchPage({ refreshKey }: { refreshKey: number }) {
             {contacts.map((c, idx) => (
               <div
                 key={c.sender_email}
-                className={`rounded-lg p-4 animate-fade-in-up stagger-${Math.min(idx + 1, 9)}`}
-                style={cardStyle}
+                className={`rounded-xl p-5 animate-fade-in-up stagger-${Math.min(idx + 1, 9)}`}
+                style={{ ...cardStyle, minHeight: '120px' }}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>

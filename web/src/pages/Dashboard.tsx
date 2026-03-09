@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, DollarSign, TrendingUp, BarChart3, Linkedin, ArrowUpDown, Inbox, ArrowRight } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, BarChart3, Linkedin, ArrowUpDown, Inbox, ArrowRight, Database } from 'lucide-react';
 import { fetchLeads, fetchLeadStats, fetchLinkedInProfiles, type Lead, type LeadStats } from '../api';
 import GradeBadge from '../components/GradeBadge';
 
-const formatAcv = (v: number | null) => (v ? `$${(v / 1000).toFixed(0)}K` : '--');
+const formatAcv = (v: number | null) => {
+  if (!v) return '--';
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  return `$${(v / 1000).toFixed(0)}K`;
+};
 const formatLabel = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 const stageColors: Record<string, string> = {
@@ -199,7 +203,7 @@ export default function Dashboard({ refreshKey }: { refreshKey: number }) {
               </span>
             </div>
 
-            {/* Score bar */}
+            {/* Score bar + CRM pill */}
             <div className="flex items-center gap-2.5">
               <div className="flex-1 rounded-full h-1.5" style={{ background: 'rgba(245, 240, 232, 0.08)' }}>
                 <div
@@ -208,6 +212,16 @@ export default function Dashboard({ refreshKey }: { refreshKey: number }) {
                 />
               </div>
               <span className="text-xs font-bold tabular-nums w-6 text-right" style={{ color: 'var(--text-secondary)' }}>{lead.score}</span>
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 transition-all"
+                style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(245, 240, 232, 0.05)', border: '1px solid var(--border)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(245, 240, 232, 0.12)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(245, 240, 232, 0.05)'; }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Database className="h-3 w-3" />
+                Sync with CRM
+              </span>
             </div>
 
             {/* Hover action bar */}

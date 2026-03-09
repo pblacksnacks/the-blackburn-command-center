@@ -225,8 +225,13 @@ async function downloadBlob(url: string, body: unknown, filename: string): Promi
   const a = document.createElement('a');
   a.href = blobUrl;
   a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(blobUrl);
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  }, 1000);
 }
 
 export async function downloadCallPrepPdf(email: string, data: CallPrep): Promise<void> {

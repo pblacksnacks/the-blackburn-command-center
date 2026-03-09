@@ -84,7 +84,7 @@ def _run_search_thread(job_id: str, lead: dict) -> None:
             load_dotenv(Path(PROJECT_ROOT) / ".env")
             api_key = os.environ.get("ANTHROPIC_API_KEY", "")
 
-        db_path = str(Path(PROJECT_ROOT) / "triage.db")
+        db_path = os.environ.get("TRIAGE_DB", str(Path(PROJECT_ROOT) / "triage.db"))
         agent = LinkedInSearchAgent(api_key=api_key, db_path=db_path)
 
         company_key = lead.get("company_domain") or (

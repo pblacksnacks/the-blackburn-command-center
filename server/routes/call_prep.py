@@ -402,6 +402,23 @@ async def generate_call_prep_pdf(sender_email: str, data: CallPrepExportRequest)
     )
 
 
+def _sanitize(text: str) -> str:
+    """Replace Unicode characters that Helvetica can't render."""
+    return (
+        text
+        .replace("\u2022", "-")   # •
+        .replace("\u2013", "-")   # –
+        .replace("\u2014", "--")  # —
+        .replace("\u2018", "'")   # '
+        .replace("\u2019", "'")   # '
+        .replace("\u201c", '"')   # "
+        .replace("\u201d", '"')   # "
+        .replace("\u2026", "...")  # …
+        .replace("\u00a0", " ")   # non-breaking space
+        .replace("\u200b", "")    # zero-width space
+    )
+
+
 def _build_call_prep_pdf(lead: dict, data: CallPrepExportRequest) -> Path:
     from fpdf import FPDF
 
@@ -416,176 +433,175 @@ def _build_call_prep_pdf(lead: dict, data: CallPrepExportRequest) -> Path:
 
     pdf = FPDF(orientation="L", unit="mm", format="letter")
     pdf.set_auto_page_break(auto=False)
-    pdf.add_page()
-    W = pdf.w  # 279.4mm
-    H = pdf.h  # 215.9mm
-    M = 8  # margin
-
-    # ── Dark header bar ──
-    pdf.set_fill_color(26, 26, 26)
-    pdf.rect(0, 0, W, 18, "F")
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_xy(M, 4)
-    pdf.cell(0, 5, f"PRE-CALL BRIEF: {company.upper()}", new_x="LMARGIN")
-
-    pdf.set_font("Helvetica", "", 8)
-    pdf.set_xy(M, 10)
-    header_detail = f"{contact}"
-    if title_str:
-        header_detail += f", {title_str}"
-    header_detail += f"   |   Grade {grade}  ({score}/100)   |   ACV {acv_str}   |   {today}"
-    pdf.cell(0, 4, header_detail, new_x="LMARGIN")
-
-    # ── Accent line ──
-    pdf.set_draw_color(212, 165, 116)
-    pdf.set_line_width(0.8)
-    pdf.line(0, 18, W, 18)
+    W = 279.4  # letter landscape width
+    H = 215.9  # letter landscape height
+    M = 8      # margin
 
     # ── Layout constants ──
-    COL_W = (W - M * 3) / 2  # two columns with center gap
+    BODY_FONT_SIZE = 7.5
+    HEADER_FONT_SIZE = 8
+    COL_W = (W - M * 3) / 2
     LEFT_X = M
     RIGHT_X = M + COL_W + M
     START_Y = 22
-    LINE_H = 3.6
-    SECTION_GAP = 2
+    LINE_H = 4.2
+    SECTION_GAP = 3.0
+    MAX_Y = H - 8  # printable bottom
 
-    def _truncate(text: str, max_lines: int, line_chars: int = 80) -> str:
-        """Wrap and truncate text to max_lines."""
-        words = text.replace("\n", " ").split()
-        lines: list[str] = []
-        current = ""
-        for w in words:
-            test = f"{current} {w}".strip()
-            if len(test) > line_chars:
-                lines.append(current)
-                current = w
-                if len(lines) >= max_lines:
-                    break
-            else:
-                current = test
-        if current and len(lines) < max_lines:
-            lines.append(current)
-        return "\n".join(lines[:max_lines])
+    def _draw_header(page_label: str) -> None:
+        """Draw dark header bar with accent line on the current page."""
+        pdf.set_fill_color(26, 26, 26)
+        pdf.rect(0, 0, W, 18, "F")
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_xy(M, 3)
+        pdf.cell(0, 5, f"PRE-CALL BRIEF: {company.upper()}", new_x="LMARGIN")
+        pdf.set_font("Helvetica", "", 7)
+        pdf.set_xy(W - M - 40, 3)
+        pdf.cell(40, 5, page_label, align="R", new_x="LMARGIN")
+        pdf.set_font("Helvetica", "", 8.5)
+        pdf.set_xy(M, 10)
+        detail = f"{contact}"
+        if title_str:
+            detail += f", {title_str}"
+        detail += f"   |   Grade {grade}  ({score}/100)   |   ACV {acv_str}   |   {today}"
+        pdf.cell(0, 4, detail, new_x="LMARGIN")
+        pdf.set_draw_color(212, 165, 116)
+        pdf.set_line_width(0.8)
+        pdf.line(0, 18, W, 18)
 
     def _section_header(x: float, y: float, text: str) -> float:
-        pdf.set_font("Helvetica", "B", 7.5)
+        pdf.set_font("Helvetica", "B", HEADER_FONT_SIZE)
         pdf.set_text_color(212, 165, 116)
         pdf.set_xy(x, y)
         pdf.cell(COL_W, LINE_H, text.upper(), new_x="LMARGIN")
-        # Divider line
         pdf.set_draw_color(200, 200, 200)
         pdf.set_line_width(0.15)
         pdf.line(x, y + LINE_H + 0.3, x + COL_W, y + LINE_H + 0.3)
         return y + LINE_H + 1.5
 
-    def _body_text(x: float, y: float, text: str, max_lines: int = 3) -> float:
-        pdf.set_font("Helvetica", "", 7)
+    def _body_text(x: float, y: float, text: str) -> float:
+        pdf.set_font("Helvetica", "", BODY_FONT_SIZE)
         pdf.set_text_color(50, 50, 50)
-        content = _truncate(text, max_lines)
-        for line in content.split("\n"):
-            pdf.set_xy(x, y)
-            pdf.cell(COL_W, LINE_H, line, new_x="LMARGIN")
-            y += LINE_H
-        return y + SECTION_GAP
+        pdf.set_xy(x, y)
+        pdf.multi_cell(COL_W, LINE_H, _sanitize(text.replace("\n", " ").strip()), new_x="LMARGIN")
+        return pdf.get_y() + SECTION_GAP
 
-    def _bullet_list(x: float, y: float, items: list[str], max_items: int = 5, prefix: str = "") -> float:
-        pdf.set_font("Helvetica", "", 7)
+    def _bullet_list(x: float, y: float, items: list[str], max_items: int = 6) -> float:
+        pdf.set_font("Helvetica", "", BODY_FONT_SIZE)
         pdf.set_text_color(50, 50, 50)
         for i, item in enumerate(items[:max_items]):
-            label = f"{prefix}{i + 1}. " if prefix == "" else f"{prefix} "
-            if prefix == "":
-                label = f"{i + 1}. "
-            text = _truncate(item, 1, line_chars=75)
             pdf.set_xy(x, y)
-            pdf.cell(COL_W, LINE_H, f"{label}{text}", new_x="LMARGIN")
-            y += LINE_H
+            pdf.multi_cell(COL_W, LINE_H, _sanitize(f"{i + 1}. {item.strip()}"), new_x="LMARGIN")
+            y = pdf.get_y() + 0.5
         return y + SECTION_GAP
 
-    # ── LEFT COLUMN ──
-    y = START_Y
+    # ════════════════════════════════════════════════════════════════
+    # PAGE 1 — INTELLIGENCE (context before the call)
+    # ════════════════════════════════════════════════════════════════
+    pdf.add_page()
+    _draw_header("PAGE 1: INTELLIGENCE")
 
-    y = _section_header(LEFT_X, y, "Contact Summary")
-    y = _body_text(LEFT_X, y, data.contact_summary, max_lines=3)
+    # ── Left column ──
+    left_y = START_Y
 
-    y = _section_header(LEFT_X, y, "Why They're Here")
-    y = _body_text(LEFT_X, y, data.why_theyre_here, max_lines=3)
+    left_y = _section_header(LEFT_X, left_y, "Contact Summary")
+    left_y = _body_text(LEFT_X, left_y, data.contact_summary)
 
-    y = _section_header(LEFT_X, y, "Current Stack")
-    y = _body_text(LEFT_X, y, data.current_stack, max_lines=2)
+    left_y = _section_header(LEFT_X, left_y, "Company Snapshot")
+    left_y = _body_text(LEFT_X, left_y, data.company_snapshot)
 
-    y = _section_header(LEFT_X, y, "Competitive Positioning")
-    # Extract up to 3 bullet points from competitive positioning text
-    comp_text = data.competitive_positioning
-    comp_sentences = [s.strip() for s in comp_text.replace("\n", ". ").split(". ") if s.strip()]
-    comp_bullets = comp_sentences[:3] if comp_sentences else [comp_text]
-    for bullet in comp_bullets:
-        pdf.set_font("Helvetica", "", 7)
-        pdf.set_text_color(50, 50, 50)
-        text = _truncate(bullet, 1, line_chars=75)
-        pdf.set_xy(LEFT_X, y)
-        pdf.cell(COL_W, LINE_H, f"  {text}", new_x="LMARGIN")
-        y += LINE_H
-    y += SECTION_GAP
+    left_y = _section_header(LEFT_X, left_y, "Why They're Here")
+    left_y = _body_text(LEFT_X, left_y, data.why_theyre_here)
 
-    y = _section_header(LEFT_X, y, "Suggested Agenda")
-    y = _bullet_list(LEFT_X, y, data.suggested_agenda, max_items=5)
+    left_y = _section_header(LEFT_X, left_y, "Current Stack")
+    left_y = _body_text(LEFT_X, left_y, data.current_stack)
 
-    # ── RIGHT COLUMN ──
-    y = START_Y
+    # ── Right column ──
+    right_y = START_Y
 
-    y = _section_header(RIGHT_X, y, "Discovery Questions")
-    y = _bullet_list(RIGHT_X, y, data.discovery_questions, max_items=5)
+    right_y = _section_header(RIGHT_X, right_y, "Competitive Positioning")
+    right_y = _body_text(RIGHT_X, right_y, data.competitive_positioning)
 
-    y = _section_header(RIGHT_X, y, "Objection Prep")
-    pdf.set_font("Helvetica", "", 7)
+    right_y = _section_header(RIGHT_X, right_y, "Suggested Agenda")
+    right_y = _bullet_list(RIGHT_X, right_y, data.suggested_agenda, max_items=5)
+
+    # Confidential line at bottom of page 1
+    pdf.set_font("Helvetica", "I", 5)
+    pdf.set_text_color(150, 150, 150)
+    pdf.set_xy(M, H - 6)
+    pdf.cell(W - M * 2, 3, "INTERNAL USE ONLY  |  Blackburn Command Center  |  Generated by Claude", new_x="LMARGIN")
+
+    # ════════════════════════════════════════════════════════════════
+    # PAGE 2 — ACTION PLAN (what to do on the call)
+    # ════════════════════════════════════════════════════════════════
+    pdf.add_page()
+    _draw_header("PAGE 2: ACTION PLAN")
+
+    # ── Left column ──
+    left_y = START_Y
+
+    left_y = _section_header(LEFT_X, left_y, "Discovery Questions")
+    left_y = _bullet_list(LEFT_X, left_y, data.discovery_questions, max_items=6)
+
+    left_y = _section_header(LEFT_X, left_y, "Proposed Next Step")
+    pdf.set_font("Helvetica", "B", BODY_FONT_SIZE)
+    pdf.set_text_color(26, 26, 26)
+    pdf.set_xy(LEFT_X, left_y)
+    pdf.multi_cell(COL_W, LINE_H, _sanitize(data.proposed_next_step.strip()), new_x="LMARGIN")
+    left_y = pdf.get_y() + SECTION_GAP
+
+    # ── Right column ──
+    right_y = START_Y
+
+    right_y = _section_header(RIGHT_X, right_y, "Objection Prep")
     for obj in data.objection_prep[:3]:
         objection = obj.get("objection", "")
         response = obj.get("response", "")
         pdf.set_text_color(180, 60, 60)
-        pdf.set_font("Helvetica", "B", 6.5)
-        pdf.set_xy(RIGHT_X, y)
-        pdf.cell(COL_W, LINE_H, f"  {_truncate(objection, 1, 70)}", new_x="LMARGIN")
-        y += LINE_H
+        pdf.set_font("Helvetica", "B", 7)
+        pdf.set_xy(RIGHT_X, right_y)
+        pdf.multi_cell(COL_W, LINE_H, _sanitize(f"  {objection}"), new_x="LMARGIN")
+        right_y = pdf.get_y()
         pdf.set_text_color(50, 50, 50)
-        pdf.set_font("Helvetica", "", 6.5)
-        pdf.set_xy(RIGHT_X + 3, y)
-        pdf.cell(COL_W - 3, LINE_H, _truncate(response, 1, 68), new_x="LMARGIN")
-        y += LINE_H + 1
-    y += SECTION_GAP
+        pdf.set_font("Helvetica", "", 7)
+        pdf.set_xy(RIGHT_X + 3, right_y)
+        pdf.multi_cell(COL_W - 3, LINE_H, _sanitize(response), new_x="LMARGIN")
+        right_y = pdf.get_y() + 1.5
+    right_y += SECTION_GAP
 
-    y = _section_header(RIGHT_X, y, "Proposed Next Step")
-    pdf.set_font("Helvetica", "B", 7)
-    pdf.set_text_color(26, 26, 26)
-    next_step = _truncate(data.proposed_next_step, 2, 75)
-    for line in next_step.split("\n"):
-        pdf.set_xy(RIGHT_X, y)
-        pdf.cell(COL_W, LINE_H, line, new_x="LMARGIN")
-        y += LINE_H
-    y += SECTION_GAP
-
-    y = _section_header(RIGHT_X, y, "Deal Strategy")
-    pdf.set_font("Helvetica", "", 6.5)
+    right_y = _section_header(RIGHT_X, right_y, "Deal Strategy")
+    pdf.set_font("Helvetica", "", BODY_FONT_SIZE)
     pdf.set_text_color(50, 50, 50)
-    pdf.set_xy(RIGHT_X, y)
-    pdf.cell(COL_W, LINE_H, f"Land: {_truncate(data.land_strategy, 1, 70)}", new_x="LMARGIN")
-    y += LINE_H
-    pdf.set_xy(RIGHT_X, y)
-    pdf.cell(COL_W, LINE_H, f"Expand: {_truncate(data.expand_strategy, 1, 68)}", new_x="LMARGIN")
-    y += LINE_H + SECTION_GAP
+    pdf.set_xy(RIGHT_X, right_y)
+    pdf.multi_cell(COL_W, LINE_H, _sanitize(f"Land: {data.land_strategy.strip()}"), new_x="LMARGIN")
+    right_y = pdf.get_y() + 1
+    pdf.set_xy(RIGHT_X, right_y)
+    pdf.multi_cell(COL_W, LINE_H, _sanitize(f"Expand: {data.expand_strategy.strip()}"), new_x="LMARGIN")
+    right_y = pdf.get_y() + SECTION_GAP
 
     # ── Footer: Do Not Say ──
-    footer_y = H - 12
+    footer_y = max(left_y, right_y, H - 30) + 2
+    if footer_y > MAX_Y - 15:
+        footer_y = MAX_Y - 15
+
     pdf.set_draw_color(200, 200, 200)
     pdf.set_line_width(0.15)
     pdf.line(M, footer_y, W - M, footer_y)
     footer_y += 1.5
-    pdf.set_font("Helvetica", "BI", 6)
-    pdf.set_text_color(180, 60, 60)
-    pdf.set_xy(M, footer_y)
+
     dns_items = data.do_not_say[:5]
-    dns_text = "DO NOT SAY:  " + "   |   ".join(dns_items) if dns_items else ""
-    pdf.cell(W - M * 2, LINE_H, dns_text, new_x="LMARGIN")
+    if dns_items:
+        pdf.set_font("Helvetica", "BI", 6.5)
+        pdf.set_text_color(180, 60, 60)
+        pdf.set_xy(M, footer_y)
+        pdf.cell(W - M * 2, LINE_H, "DO NOT SAY:", new_x="LMARGIN")
+        footer_y += LINE_H
+        pdf.set_font("Helvetica", "I", 6)
+        for item in dns_items:
+            pdf.set_xy(M + 3, footer_y)
+            pdf.multi_cell(W - M * 2 - 3, LINE_H, _sanitize(f"- {item}"), new_x="LMARGIN")
+            footer_y = pdf.get_y()
 
     # Confidential footer
     pdf.set_font("Helvetica", "I", 5)
@@ -619,35 +635,39 @@ async def generate_call_prep_pptx(sender_email: str, data: CallPrepExportRequest
 def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     from pptx import Presentation
     from pptx.dml.color import RGBColor
+    from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
     from pptx.enum.text import PP_ALIGN
-    from pptx.util import Inches, Pt, Emu
+    from pptx.util import Inches, Pt
 
-    # Anthropic brand colors
-    BG_CREAM = RGBColor(245, 240, 232)       # #F5F0E8
-    TEXT_DARK = RGBColor(26, 26, 26)          # #1A1A1A
-    TEXT_BODY = RGBColor(68, 64, 60)          # #44403C
-    ACCENT = RGBColor(212, 165, 116)          # #D4A574
-    ACCENT_DARK = RGBColor(170, 130, 85)      # slightly darker accent
-    MUTED = RGBColor(140, 135, 125)           # muted text
+    # ── Anthropic brand colours ──
+    BG_CREAM = RGBColor(245, 240, 232)
+    TEXT_DARK = RGBColor(26, 26, 26)
+    TEXT_BODY = RGBColor(68, 64, 60)
+    ACCENT = RGBColor(212, 165, 116)
+    MUTED = RGBColor(140, 135, 125)
     WHITE = RGBColor(255, 255, 255)
+    FONT = "Arial"
 
     company = lead.get("company_name") or "Your Company"
     contact = lead.get("sender_name") or "Contact"
     today_str = date.today().strftime("%B %d, %Y")
     acv = lead.get("estimated_acv")
     acv_str = f"${acv:,}" if acv else "TBD"
+    emp_count = lead.get("employee_range") or "793"
 
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
 
-    def _set_bg(slide, color=BG_CREAM):
-        bg = slide.background
-        fill = bg.fill
-        fill.solid()
-        fill.fore_color.rgb = color
+    # ── Primitives ──
 
-    def _add_text(slide, x, y, w, h, text, size=12, bold=False, color=TEXT_DARK, align=PP_ALIGN.LEFT, font_name="Calibri"):
+    def _bg(slide):
+        fill = slide.background.fill
+        fill.solid()
+        fill.fore_color.rgb = BG_CREAM
+
+    def _t(slide, x, y, w, h, text, size=16, bold=False,
+           color=TEXT_DARK, align=PP_ALIGN.LEFT):
         box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
         tf = box.text_frame
         tf.word_wrap = True
@@ -656,274 +676,218 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
         p.font.size = Pt(size)
         p.font.bold = bold
         p.font.color.rgb = color
-        p.font.name = font_name
+        p.font.name = FONT
         p.alignment = align
         return tf
 
-    def _add_multiline(slide, x, y, w, h, lines, size=14, color=TEXT_BODY, bold=False, spacing=1.2, font_name="Calibri"):
-        box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
-        tf = box.text_frame
-        tf.word_wrap = True
-        for i, line in enumerate(lines):
-            p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-            p.text = line
-            p.font.size = Pt(size)
-            p.font.bold = bold
-            p.font.color.rgb = color
-            p.font.name = font_name
-            p.space_after = Pt(size * spacing * 0.4)
-        return tf
+    def _n(slide, text: str):
+        slide.notes_slide.notes_text_frame.text = text
 
-    def _add_notes(slide, text: str):
-        notes_slide = slide.notes_slide
-        notes_slide.notes_text_frame.text = text
-
-    def _accent_bar(slide, x, y, w, h):
-        from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
-        shape = slide.shapes.add_shape(
+    def _bar(slide, x, y, w, h):
+        s = slide.shapes.add_shape(
             MSO_AUTO_SHAPE_TYPE.RECTANGLE,
-            Inches(x), Inches(y), Inches(w), Inches(h),
-        )
-        shape.fill.solid()
-        shape.fill.fore_color.rgb = ACCENT
-        shape.line.fill.background()
-        return shape
+            Inches(x), Inches(y), Inches(w), Inches(h))
+        s.fill.solid()
+        s.fill.fore_color.rgb = ACCENT
+        s.line.fill.background()
 
-    def _card_shape(slide, x, y, w, h, fill_color=WHITE):
-        from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
-        shape = slide.shapes.add_shape(
+    def _card(slide, x, y, w, h, fill=WHITE):
+        s = slide.shapes.add_shape(
             MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE,
-            Inches(x), Inches(y), Inches(w), Inches(h),
-        )
-        shape.fill.solid()
-        shape.fill.fore_color.rgb = fill_color
-        shape.line.color.rgb = RGBColor(220, 215, 205)
-        shape.line.width = Pt(0.5)
-        return shape
+            Inches(x), Inches(y), Inches(w), Inches(h))
+        s.fill.solid()
+        s.fill.fore_color.rgb = fill
+        s.line.color.rgb = RGBColor(220, 215, 205)
+        s.line.width = Pt(0.5)
+
+    def _header(slide, title: str):
+        _bar(slide, 0, 0, 13.333, 0.08)
+        _t(slide, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
+        _t(slide, 1.0, 1.3, 10, 0.8, title, size=36, bold=True)
+        _bar(slide, 1.0, 2.2, 1.0, 0.05)
 
     # ════════════════════════════════════════════════════════════════
     # SLIDE 1 — Title
     # ════════════════════════════════════════════════════════════════
     s1 = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s1)
-    _accent_bar(s1, 0, 0, 13.333, 0.08)
+    _bg(s1)
+    _bar(s1, 0, 0, 13.333, 0.08)
+    _t(s1, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
+    _t(s1, 1.0, 2.0, 10, 1.5,
+       f"Partnering with {company}\non AI", size=40, bold=True)
+    _bar(s1, 1.0, 4.0, 1.5, 0.06)
+    _t(s1, 1.0, 4.4, 8, 0.5,
+       f"Prepared for {contact}  |  {today_str}", size=16, color=MUTED)
 
-    _add_text(s1, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
-    _add_text(s1, 1.0, 2.0, 10, 1.5,
-              f"Partnering with {company}\non AI", size=40, bold=True, color=TEXT_DARK)
-    _accent_bar(s1, 1.0, 4.0, 1.5, 0.06)
-    _add_text(s1, 1.0, 4.4, 8, 0.5,
-              f"Prepared for {contact}  |  {today_str}", size=16, color=MUTED)
-
-    _add_notes(s1, (
+    _n(s1, (
         f"INTRO TALK TRACK\n\n"
         f"Thank {contact} for taking the time. Reference their inbound interest.\n\n"
-        f"Context:\n{data.contact_summary}\n\n"
-        f"Company background:\n{data.company_snapshot}\n\n"
+        f"CONTACT SUMMARY:\n{data.contact_summary}\n\n"
+        f"COMPANY BACKGROUND:\n{data.company_snapshot}\n\n"
         f"Key: Establish credibility, show you've done homework, set collaborative tone. "
         f"This is a conversation, not a pitch."
     ))
 
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 2 — Agenda
+    # SLIDE 2 — Agenda (hardcoded short labels)
     # ════════════════════════════════════════════════════════════════
     s2 = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s2)
-    _accent_bar(s2, 0, 0, 13.333, 0.08)
+    _bg(s2)
+    _header(s2, "Today's Agenda")
 
-    _add_text(s2, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
-    _add_text(s2, 1.0, 1.2, 10, 0.8, "Today's Agenda", size=32, bold=True, color=TEXT_DARK)
-    _accent_bar(s2, 1.0, 2.1, 1.0, 0.05)
+    agenda_labels = [
+        "Your AI Landscape Today",
+        "Key Challenges & Requirements",
+        "How Claude Can Help",
+        "Pilot Approach & Next Steps",
+    ]
+    y = 2.6
+    for label in agenda_labels:
+        _card(s2, 1.0, y, 11.0, 0.9)
+        _t(s2, 1.5, y + 0.22, 10.0, 0.5, label, size=18, color=TEXT_BODY)
+        y += 1.05
 
     agenda_items = data.suggested_agenda[:5]
-    time_allocs = ["5 min", "5 min", "5 min", "5 min", "5 min"]
-    if len(agenda_items) == 5:
-        time_allocs = ["3 min", "5 min", "7 min", "5 min", "5 min"]
-    elif len(agenda_items) == 4:
+    time_allocs = ["3 min", "5 min", "7 min", "5 min", "5 min"]
+    if len(agenda_items) == 4:
         time_allocs = ["3 min", "7 min", "8 min", "7 min"]
-
-    y_pos = 2.6
-    for i, item in enumerate(agenda_items):
-        _card_shape(s2, 1.0, y_pos, 11.0, 0.8)
-        _add_text(s2, 1.3, y_pos + 0.15, 0.8, 0.5,
-                  time_allocs[i] if i < len(time_allocs) else "5 min",
-                  size=11, color=ACCENT, bold=True)
-        _add_text(s2, 2.3, y_pos + 0.15, 9.5, 0.5,
-                  item, size=14, color=TEXT_BODY)
-        y_pos += 0.95
-
-    notes_agenda = "AGENDA FRAMING\n\n"
+    notes_agenda = "AGENDA -- FULL DETAIL & TIME ALLOCATIONS\n\n"
     for i, item in enumerate(agenda_items):
         t = time_allocs[i] if i < len(time_allocs) else "5 min"
-        notes_agenda += f"{i+1}. ({t}) {item}\n"
+        notes_agenda += f"{i + 1}. ({t}) {item}\n"
     notes_agenda += (
         f"\nHow to frame: 'I want to make sure we use our time well. "
         f"I'd love to start by understanding your current landscape, "
         f"then share how we might be able to help, and end with clear next steps. "
         f"Does that work?'"
     )
-    _add_notes(s2, notes_agenda)
+    _n(s2, notes_agenda)
 
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 3 — Understanding Your AI Landscape
+    # SLIDE 3 — Understanding Your AI Landscape (hardcoded cards)
     # ════════════════════════════════════════════════════════════════
     s3 = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s3)
-    _accent_bar(s3, 0, 0, 13.333, 0.08)
+    _bg(s3)
+    _header(s3, "Understanding Your AI Landscape")
 
-    _add_text(s3, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
-    _add_text(s3, 1.0, 1.2, 10, 0.8, "Understanding Your AI Landscape", size=32, bold=True, color=TEXT_DARK)
-    _accent_bar(s3, 1.0, 2.1, 1.0, 0.05)
-
-    # Extract 3 challenge statements from why_theyre_here and current_stack
-    challenges = []
-    why_sentences = [s.strip() for s in data.why_theyre_here.replace("\n", ". ").split(". ") if s.strip()]
-    stack_sentences = [s.strip() for s in data.current_stack.replace("\n", ". ").split(". ") if s.strip()]
-    all_sentences = why_sentences + stack_sentences
-    for s in all_sentences:
-        if len(s) > 15:
-            challenges.append(s)
-        if len(challenges) >= 3:
-            break
-    while len(challenges) < 3:
-        challenges.append("Exploring new AI capabilities for your team")
-
-    card_x_positions = [1.0, 4.8, 8.6]
-    for i, challenge in enumerate(challenges[:3]):
-        _card_shape(s3, card_x_positions[i], 2.8, 3.5, 3.5)
-        _accent_bar(s3, card_x_positions[i], 2.8, 3.5, 0.06)
-        _add_text(s3, card_x_positions[i] + 0.3, 3.2, 2.9, 0.4,
-                  f"0{i+1}", size=28, bold=True, color=ACCENT)
-        _add_text(s3, card_x_positions[i] + 0.3, 3.9, 2.9, 2.2,
-                  challenge, size=14, color=TEXT_BODY)
+    challenges = [
+        ("Accuracy at Stake",
+         "Contract errors putting enterprise clients at risk"),
+        ("Governance Gap",
+         f"{emp_count} employees, no centralized AI oversight"),
+        ("Legal-Grade Reliability",
+         "Fortune 500 contracts demand zero tolerance"),
+    ]
+    card_xs = [1.0, 4.8, 8.6]
+    for i, (headline, subtitle) in enumerate(challenges):
+        _card(s3, card_xs[i], 2.9, 3.5, 3.2)
+        _bar(s3, card_xs[i], 2.9, 3.5, 0.06)
+        _t(s3, card_xs[i] + 0.3, 3.3, 2.9, 0.5,
+           f"0{i + 1}", size=32, bold=True, color=ACCENT)
+        _t(s3, card_xs[i] + 0.3, 4.0, 2.9, 0.6,
+           headline, size=22, bold=True)
+        _t(s3, card_xs[i] + 0.3, 4.7, 2.9, 1.2,
+           subtitle, size=14, color=TEXT_BODY)
 
     notes_landscape = (
-        f"DISCOVERY SECTION\n\n"
-        f"Why they're here:\n{data.why_theyre_here}\n\n"
-        f"Current stack:\n{data.current_stack}\n\n"
+        f"DISCOVERY SECTION -- FULL DETAIL\n\n"
+        f"WHY THEY'RE HERE:\n{data.why_theyre_here}\n\n"
+        f"CURRENT STACK:\n{data.current_stack}\n\n"
         f"DISCOVERY QUESTIONS TO ASK:\n"
     )
-    for i, q in enumerate(data.discovery_questions[:5], 1):
+    for i, q in enumerate(data.discovery_questions[:6], 1):
         notes_landscape += f"{i}. {q}\n"
     notes_landscape += (
         f"\nListen more than you talk in this section. Use these questions "
-        f"to uncover the real pain. Take notes on what they say — you'll "
-        f"reference it in the next section."
+        f"to uncover the real pain. Take notes on what they say -- you'll "
+        f"reference it in the next section.\n\n"
+        f"If they mention specific numbers (error counts, ticket volumes, "
+        f"cost figures), write them down verbatim. You'll use these in the "
+        f"proposal section."
     )
-    _add_notes(s3, notes_landscape)
+    _n(s3, notes_landscape)
 
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 4 — Why Claude for {company}
+    # SLIDE 4 — Why Claude for {company} (hardcoded value props)
     # ════════════════════════════════════════════════════════════════
     s4 = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s4)
-    _accent_bar(s4, 0, 0, 13.333, 0.08)
+    _bg(s4)
+    _header(s4, f"Why Claude for {company}")
 
-    _add_text(s4, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
-    _add_text(s4, 1.0, 1.2, 10, 0.8, f"Why Claude for {company}", size=32, bold=True, color=TEXT_DARK)
-    _accent_bar(s4, 1.0, 2.1, 1.0, 0.05)
-
-    # Extract advantages from competitive positioning
-    comp_sentences = [s.strip() for s in data.competitive_positioning.replace("\n", ". ").split(". ") if len(s.strip()) > 10]
-    advantages = []
-    for i in range(0, len(comp_sentences), max(1, len(comp_sentences) // 3)):
-        group = comp_sentences[i:i + max(1, len(comp_sentences) // 3)]
-        if group:
-            # First sentence as headline, rest as supporting
-            advantages.append({
-                "headline": group[0],
-                "detail": " ".join(group[1:]) if len(group) > 1 else "",
-            })
-        if len(advantages) >= 3:
-            break
-    while len(advantages) < 3:
-        advantages.append({"headline": "Purpose-built AI that works for your team", "detail": ""})
-
-    y_pos = 2.8
-    for i, adv in enumerate(advantages[:3]):
-        _card_shape(s4, 1.0, y_pos, 11.0, 1.3)
-        _accent_bar(s4, 1.0, y_pos, 0.08, 1.3)
-        _add_text(s4, 1.4, y_pos + 0.15, 10.4, 0.5,
-                  adv["headline"], size=18, bold=True, color=TEXT_DARK)
-        if adv["detail"]:
-            _add_text(s4, 1.4, y_pos + 0.7, 10.4, 0.5,
-                      adv["detail"][:150], size=12, color=TEXT_BODY)
-        y_pos += 1.5
+    value_props = [
+        ("Superior Legal Reasoning",
+         "Constitutional AI built for nuanced interpretation"),
+        ("Enterprise-Ready from Day One",
+         "SSO, security controls, and compliance built in"),
+        ("Seamless Migration Path",
+         "API-compatible with dedicated migration support"),
+    ]
+    y = 2.9
+    for headline, subtitle in value_props:
+        _card(s4, 1.0, y, 11.0, 1.35)
+        _bar(s4, 1.0, y, 0.08, 1.35)
+        _t(s4, 1.5, y + 0.2, 10.0, 0.6,
+           headline, size=22, bold=True)
+        _t(s4, 1.5, y + 0.75, 10.0, 0.5,
+           subtitle, size=14, color=TEXT_BODY)
+        y += 1.55
 
     notes_why = (
-        f"COMPETITIVE POSITIONING DETAIL\n\n"
+        f"COMPETITIVE POSITIONING -- FULL DETAIL\n\n"
         f"{data.competitive_positioning}\n\n"
-        f"OBJECTION RESPONSES:\n"
+        f"OBJECTION RESPONSES (word-for-word rebuttals):\n"
     )
-    for obj in data.objection_prep[:3]:
-        notes_why += f"\nObjection: {obj.get('objection', '')}\n"
-        notes_why += f"Response: {obj.get('response', '')}\n"
+    for obj in data.objection_prep[:4]:
+        notes_why += f"\nOBJECTION: \"{obj.get('objection', '')}\"\n"
+        notes_why += f"RESPONSE: {obj.get('response', '')}\n"
     notes_why += (
         f"\nKey: Connect advantages to THEIR specific pain points. "
         f"Reference what they said in the discovery section. "
-        f"'Based on what you shared about X, here's why Claude is a good fit...'"
+        f"'Based on what you shared about X, here's why Claude is a good fit...'\n\n"
+        f"Do NOT lead with features. Lead with their pain, then bridge to how Claude solves it."
     )
-    _add_notes(s4, notes_why)
+    _n(s4, notes_why)
 
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 5 — Proposed Pilot Program
+    # SLIDE 5 — Proposed Pilot Program (no dollar amounts on slide)
     # ════════════════════════════════════════════════════════════════
     s5 = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s5)
-    _accent_bar(s5, 0, 0, 13.333, 0.08)
-
-    _add_text(s5, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
-    _add_text(s5, 1.0, 1.2, 10, 0.8, "Proposed Pilot Program", size=32, bold=True, color=TEXT_DARK)
-    _accent_bar(s5, 1.0, 2.1, 1.0, 0.05)
-
-    # Extract land strategy short description
-    land_short = data.land_strategy.split(".")[0] if "." in data.land_strategy else data.land_strategy
-    expand_short = data.expand_strategy.split(".")[0] if "." in data.expand_strategy else data.expand_strategy
+    _bg(s5)
+    _header(s5, "Proposed Pilot Program")
 
     phases = [
-        {"label": "PHASE 1", "time": "30 Days", "desc": f"Pilot: {land_short[:80]}", "value": acv_str},
-        {"label": "PHASE 2", "time": "90 Days", "desc": f"Expand: {expand_short[:80]}", "value": ""},
-        {"label": "PHASE 3", "time": "12 Months", "desc": f"Full deployment across organization", "value": lead.get("tam_estimate") or ""},
+        ("PHASE 1", "30 Days", "Technical Proof-of-Concept"),
+        ("PHASE 2", "90 Days", "Expand to Key Teams"),
+        ("PHASE 3", "12 Months", "Full Organization Rollout"),
     ]
 
-    # Timeline visual
     # Connector line
-    from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
-    line_shape = s5.shapes.add_shape(
+    conn = s5.shapes.add_shape(
         MSO_AUTO_SHAPE_TYPE.RECTANGLE,
-        Inches(1.5), Inches(3.45), Inches(10.0), Inches(0.06),
-    )
-    line_shape.fill.solid()
-    line_shape.fill.fore_color.rgb = ACCENT
-    line_shape.line.fill.background()
+        Inches(1.8), Inches(3.7), Inches(9.6), Inches(0.06))
+    conn.fill.solid()
+    conn.fill.fore_color.rgb = ACCENT
+    conn.line.fill.background()
 
-    phase_x = [1.2, 5.0, 8.8]
-    for i, phase in enumerate(phases):
-        # Circle node
+    phase_xs = [1.2, 5.0, 8.8]
+    for i, (label, time, desc) in enumerate(phases):
         circle = s5.shapes.add_shape(
             MSO_AUTO_SHAPE_TYPE.OVAL,
-            Inches(phase_x[i] + 1.3), Inches(3.15), Inches(0.7), Inches(0.7),
-        )
+            Inches(phase_xs[i] + 1.3), Inches(3.4), Inches(0.7), Inches(0.7))
         circle.fill.solid()
         circle.fill.fore_color.rgb = ACCENT if i == 0 else BG_CREAM
         circle.line.color.rgb = ACCENT
         circle.line.width = Pt(2)
+        _t(s5, phase_xs[i] + 1.3, 3.45, 0.7, 0.6,
+           str(i + 1), size=22, bold=True,
+           color=WHITE if i == 0 else ACCENT,
+           align=PP_ALIGN.CENTER)
 
-        _add_text(s5, phase_x[i] + 1.3, 3.2, 0.7, 0.6,
-                  str(i + 1), size=20, bold=True,
-                  color=WHITE if i == 0 else ACCENT,
-                  align=PP_ALIGN.CENTER)
-
-        # Card below
-        _card_shape(s5, phase_x[i], 4.2, 3.6, 2.3)
-        _add_text(s5, phase_x[i] + 0.2, 4.35, 3.2, 0.4,
-                  f"{phase['label']}  —  {phase['time']}",
-                  size=11, bold=True, color=ACCENT)
-        _add_text(s5, phase_x[i] + 0.2, 4.85, 3.2, 1.0,
-                  phase["desc"], size=13, color=TEXT_BODY)
-        if phase["value"]:
-            _add_text(s5, phase_x[i] + 0.2, 5.9, 3.2, 0.4,
-                      phase["value"], size=16, bold=True, color=TEXT_DARK)
+        _card(s5, phase_xs[i], 4.4, 3.6, 2.0)
+        _t(s5, phase_xs[i] + 0.25, 4.55, 3.1, 0.4,
+           f"{label}  --  {time}", size=14, bold=True, color=ACCENT)
+        _t(s5, phase_xs[i] + 0.25, 5.1, 3.1, 0.7,
+           desc, size=16, color=TEXT_BODY)
 
     notes_pilot = (
         f"FULL DEAL STRATEGY\n\n"
@@ -932,72 +896,66 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
         f"ACV Target: {acv_str}\n"
         f"TAM Estimate: {lead.get('tam_estimate') or 'TBD'}\n"
         f"Expansion Potential: {lead.get('expansion_potential') or 'TBD'}\n\n"
-        f"Present this as a low-risk starting point. Emphasize time-to-value. "
-        f"Phase 1 should feel easy to say yes to."
+        f"Present this as a low-risk starting point. Emphasize time-to-value.\n"
+        f"Phase 1 should feel easy to say yes to.\n\n"
+        f"If they push back on timeline, offer to compress Phase 1 to 2 weeks "
+        f"with a focused use case. The goal is to get code running against "
+        f"their data as fast as possible."
     )
-    _add_notes(s5, notes_pilot)
+    _n(s5, notes_pilot)
 
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 6 — Next Steps
+    # SLIDE 6 — Next Steps (hardcoded short labels)
     # ════════════════════════════════════════════════════════════════
     s6 = prs.slides.add_slide(prs.slide_layouts[6])
-    _set_bg(s6)
-    _accent_bar(s6, 0, 0, 13.333, 0.08)
+    _bg(s6)
+    _header(s6, "Next Steps")
 
-    _add_text(s6, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
-    _add_text(s6, 1.0, 1.2, 10, 0.8, "Next Steps", size=32, bold=True, color=TEXT_DARK)
-    _accent_bar(s6, 1.0, 2.1, 1.0, 0.05)
-
-    # Build next steps from proposed_next_step
-    next_step_items = [s.strip() for s in data.proposed_next_step.replace("\n", ". ").split(". ") if len(s.strip()) > 5]
-    # Build 2-3 action items with dates
     d1 = (date.today() + timedelta(days=2)).strftime("%b %d")
     d2 = (date.today() + timedelta(days=7)).strftime("%b %d")
     d3 = (date.today() + timedelta(days=14)).strftime("%b %d")
 
-    action_items = []
-    if next_step_items:
-        action_items.append({"action": next_step_items[0], "owner": "Parker / Anthropic", "date": d1})
-    if len(next_step_items) > 1:
-        action_items.append({"action": next_step_items[1], "owner": contact, "date": d2})
-    else:
-        action_items.append({"action": "Technical deep-dive with your engineering team", "owner": contact, "date": d2})
-    action_items.append({"action": "Pilot kickoff with success criteria defined", "owner": "Joint", "date": d3})
+    actions = [
+        ("Board presentation materials", "Parker / Anthropic", d1),
+        ("Technical deep-dive session", contact, d2),
+        ("Pilot kickoff", "Joint", d3),
+    ]
 
-    # Table-like layout
-    _card_shape(s6, 1.0, 2.6, 11.0, 0.6, fill_color=RGBColor(235, 230, 222))
-    _add_text(s6, 1.3, 2.7, 6, 0.4, "Action Item", size=11, bold=True, color=MUTED)
-    _add_text(s6, 8.0, 2.7, 2, 0.4, "Owner", size=11, bold=True, color=MUTED)
-    _add_text(s6, 10.5, 2.7, 2, 0.4, "Target Date", size=11, bold=True, color=MUTED)
+    # Table header
+    _card(s6, 1.0, 2.8, 11.0, 0.65, fill=RGBColor(235, 230, 222))
+    _t(s6, 1.4, 2.9, 6, 0.45, "Action Item", size=14, bold=True, color=MUTED)
+    _t(s6, 8.0, 2.9, 2, 0.45, "Owner", size=14, bold=True, color=MUTED)
+    _t(s6, 10.5, 2.9, 2, 0.45, "Target Date", size=14, bold=True, color=MUTED)
 
-    y_pos = 3.3
-    for item in action_items[:3]:
-        _card_shape(s6, 1.0, y_pos, 11.0, 0.8)
-        _add_text(s6, 1.3, y_pos + 0.15, 6.5, 0.5,
-                  item["action"][:90], size=14, color=TEXT_BODY)
-        _add_text(s6, 8.0, y_pos + 0.15, 2, 0.5,
-                  item["owner"], size=12, color=TEXT_BODY)
-        _add_text(s6, 10.5, y_pos + 0.15, 2, 0.5,
-                  item["date"], size=12, bold=True, color=ACCENT)
-        y_pos += 0.95
+    y = 3.6
+    for action, owner, dt in actions:
+        _card(s6, 1.0, y, 11.0, 0.85)
+        _t(s6, 1.4, y + 0.2, 6.2, 0.5, action, size=16, color=TEXT_BODY)
+        _t(s6, 8.0, y + 0.2, 2.2, 0.5, owner, size=14, color=TEXT_BODY)
+        _t(s6, 10.5, y + 0.2, 2, 0.5, dt, size=14, bold=True, color=ACCENT)
+        y += 1.0
 
-    # Contact info
-    _add_text(s6, 1.0, 6.3, 10, 0.5,
-              "Parker Blackburn  |  parker@anthropic.com  |  Anthropic",
-              size=12, color=MUTED)
+    _t(s6, 1.0, 6.5, 10, 0.5,
+       "Parker Blackburn  |  parker@anthropic.com  |  Anthropic",
+       size=14, color=MUTED)
 
     notes_next = (
-        f"CLOSING SECTION\n\n"
-        f"Proposed next step:\n{data.proposed_next_step}\n\n"
-        f"Push for a specific date and time. Don't leave with 'we'll follow up.' "
+        f"CLOSING SECTION -- FULL DETAIL\n\n"
+        f"PROPOSED NEXT STEP:\n{data.proposed_next_step}\n\n"
+        f"Push for a specific date and time. Don't leave with 'we'll follow up.'\n"
         f"Ideal outcome: calendar invite sent before the call ends.\n\n"
         f"DO NOT SAY:\n"
     )
     for item in data.do_not_say[:5]:
         notes_next += f"- {item}\n"
-    _add_notes(s6, notes_next)
+    notes_next += (
+        f"\nClosing language: 'Based on everything we've discussed, I think "
+        f"the best next step would be [proposed step]. Can we get that on the "
+        f"calendar before we wrap up today?'"
+    )
+    _n(s6, notes_next)
 
-    # Save
+    # ── Save ──
     tmp = tempfile.NamedTemporaryFile(suffix=".pptx", delete=False)
     prs.save(tmp.name)
     return Path(tmp.name)

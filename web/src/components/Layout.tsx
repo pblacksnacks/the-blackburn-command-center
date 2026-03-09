@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Building2, FileText, Radar } from 'lucide-react';
-import PipelineRunner from './PipelineRunner';
+// PipelineRunner hidden during demo — costs API credits
+// import PipelineRunner from './PipelineRunner';
 
 const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -57,7 +58,7 @@ export default function Layout({ children, onPipelineComplete }: { children: Rea
             ))}
           </nav>
         </div>
-        <PipelineRunner onComplete={onPipelineComplete} />
+        {/* PipelineRunner hidden during demo */}
       </header>
 
       <main className="p-6">{children}</main>
