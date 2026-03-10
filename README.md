@@ -43,9 +43,11 @@ Same codebase, same scoring engine, different product context — proving the to
 ## Quick Start
 
 ```bash
-git clone https://github.com/pblacksnacks/email-triage-system.git
-cd email-triage-system
-cp .env.example .env   # add your ANTHROPIC_API_KEY
+git clone https://github.com/pblacksnacks/the-blackburn-command-center.git
+cd the-blackburn-command-center
+cp .env.example .env                                       # add your ANTHROPIC_API_KEY
+cp demo_data/anthropic.example.json demo_data/anthropic.json  # add your own lead data
+cp demo_data/gitlab.example.json demo_data/gitlab.json        # add your own lead data
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 python main.py full --demo
@@ -112,8 +114,8 @@ Grades: A = 80-100, B = 60-79, C = 40-59, D = 0-39
 ├── schema.sql
 ├── requirements.txt
 ├── demo_data/
-│   ├── anthropic.json               # 15 SF high-tech demo emails
-│   └── gitlab.json                  # 15 Colorado high-tech demo emails
+│   ├── anthropic.example.json        # Template — copy to anthropic.json
+│   └── gitlab.example.json          # Template — copy to gitlab.json
 ├── agents/
 │   ├── intake_agent.py              # Classification + scoring
 │   ├── lead_scorer.py               # 100-point scoring rubric

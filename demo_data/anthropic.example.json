@@ -1,0 +1,18 @@
+[
+  {
+    "email_id": "demo-001",
+    "sender_email": "cto@acmecorp.com",
+    "sender_name": "Jane Doe",
+    "subject": "Claude API integration for Acme AI — need enterprise contract by Q2",
+    "body": "Hi team,\n\nI'm the CTO at Acme Corp. We're currently evaluating Claude for our AI features and the quality delta is significant — especially on long-context summarization.\n\nWe're looking to migrate our AI pipeline to Claude by end of Q2. This would cover:\n- AI writing assistant (all users, ~10M+ monthly)\n- Q&A over workspace content\n- Autofill for databases\n\nWe need an enterprise API agreement with committed throughput guarantees. Happy to share exact numbers on a call.\n\nCan we schedule a technical deep-dive this week? Our CEO would join.\n\nBest,\nJane Doe\nCTO, Acme Corp",
+    "received_at": "2026-03-07T08:15:00Z"
+  },
+  {
+    "email_id": "demo-002",
+    "sender_email": "john.smith@globex.com",
+    "sender_name": "John Smith",
+    "subject": "Evaluating Claude for internal ops + potential product features",
+    "body": "Hi,\n\nI lead the Engineering team at Globex Corporation (~500 employees). We're exploring two tracks:\n\n1. Internal: our support team handles 1,500+ tickets/week. We want to use Claude to auto-draft responses, classify tickets, and surface knowledge base gaps.\n\n2. Product: our design team is prototyping an AI assistant that could generate code and suggest layouts — Claude's code generation quality caught our attention.\n\nWe're comparing Claude, GPT-4o, and Gemini. Our evaluation committee meets March 20th.\n\nCould you send over enterprise pricing and a technical capabilities deck?\n\nThanks,\nJohn Smith\nVP Engineering, Globex Corporation",
+    "received_at": "2026-03-07T08:45:00Z"
+  }
+]

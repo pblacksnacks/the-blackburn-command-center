@@ -1,0 +1,18 @@
+[
+  {
+    "email_id": "gl-demo-001",
+    "sender_email": "cto@initech.com",
+    "sender_name": "Alex Johnson",
+    "subject": "Consolidating GitHub + CircleCI + Snyk into GitLab for platform reliability",
+    "body": "Hi GitLab team,\n\nI'm the CTO at Initech, a Colorado-based SaaS platform. We've grown fast and the toolchain grew with us. Today we're running source on GitHub, CI on CircleCI, and security coverage spread between Snyk and homegrown checks.\n\nTwo drivers are pushing us toward consolidation. First: reliability. Our devs lose hours each week to brittle pipeline dependencies. Second: governance. We're operating under SOC 2 expectations and customer questionnaires are getting sharper.\n\nWe're evaluating a move to GitLab to reduce the surface area. Scope: ~300-500 dev seats. Budget range is $200K-$400K ACV depending on security bundles and support.\n\nThanks,\nAlex Johnson\nCTO, Initech",
+    "received_at": "2026-03-07T08:15:00Z"
+  },
+  {
+    "email_id": "gl-demo-002",
+    "sender_email": "cto@vandelay.com",
+    "sender_name": "Maria Garcia",
+    "subject": "GitHub Enterprise migration + pipeline standardization (need proposal in March)",
+    "body": "Hi GitLab,\n\nMaria Garcia, CTO at Vandelay Industries. We're a Denver-based platform serving consumer markets. We're heavy on mobile + backend services, and release velocity directly affects campaigns.\n\nOur current setup is GitHub Enterprise for source control, Jenkins for most CI, and growing dependency on paid CI add-ons. Security is layered but uneven.\n\nWe're considering GitLab as a single platform for SCM + CI/CD + DevSecOps. Biggest questions: 1) Runner strategy at scale on Kubernetes. 2) Enforceable SAST/DAST/dependency scanning. 3) Migration mechanics for hundreds of repos.\n\nWe'd run a pilot with ~75 engineers across 10-15 services. If the pilot looks good, $500K-$800K ACV depending on seat count and support.\n\nRegards,\nMaria Garcia\nCTO, Vandelay Industries",
+    "received_at": "2026-03-07T08:45:00Z"
+  }
+]

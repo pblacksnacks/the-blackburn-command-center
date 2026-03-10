@@ -30,6 +30,10 @@ venv/
 node_modules/
 web/dist/
 
+# Demo data (real lead data — never commit)
+demo_data/anthropic.json
+demo_data/gitlab.json
+
 # OS
 .DS_Store
 Thumbs.db
