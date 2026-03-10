@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS leads (
     content_depth_score INTEGER NOT NULL CHECK (content_depth_score BETWEEN 0 AND 15),
     authority_score INTEGER NOT NULL CHECK (authority_score BETWEEN 0 AND 10),
 
-    -- Anthropic-specific
-    use_case TEXT CHECK (use_case IN ('internal_productivity', 'product_integration', 'dual_motion', 'unknown')),
-    product_line_fit TEXT CHECK (product_line_fit IN ('api', 'claude_ai_seats', 'claude_enterprise', 'multiple', 'unknown')),
+    -- Product-specific
+    use_case TEXT CHECK (use_case IN ('internal_productivity', 'product_integration', 'dual_motion', 'platform_consolidation', 'devsecops', 'ci_cd_modernization', 'compliance_automation', 'unknown')),
+    product_line_fit TEXT CHECK (product_line_fit IN ('api', 'claude_ai_seats', 'claude_enterprise', 'gitlab_ultimate', 'gitlab_premium', 'gitlab_self_managed', 'gitlab_dedicated', 'multiple', 'unknown')),
 
     -- Market position
     buying_stage TEXT CHECK (buying_stage IN ('researching', 'evaluating', 'ready_to_buy', 'unknown')),

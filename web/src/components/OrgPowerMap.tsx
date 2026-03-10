@@ -1,3 +1,5 @@
+import { useMode } from '../modeContext';
+
 type RoleTag = 'Decision Maker' | 'Influencer' | 'Champion' | 'End User';
 
 interface OrgRole {
@@ -12,7 +14,7 @@ interface Department {
   roles: OrgRole[];
 }
 
-const departments: Department[] = [
+const anthropicDepartments: Department[] = [
   {
     key: 'engineering',
     label: 'Engineering',
@@ -95,6 +97,89 @@ const departments: Department[] = [
   },
 ];
 
+const gitlabDepartments: Department[] = [
+  {
+    key: 'engineering',
+    label: 'Engineering',
+    roles: [
+      { title: 'CTO', product: 'Ultimate', roleTag: 'Decision Maker' },
+      { title: 'VP Engineering', product: 'Self-Managed', roleTag: 'Influencer' },
+      { title: 'Dir. Engineering', product: 'Self-Managed', roleTag: 'Influencer' },
+      { title: 'Eng Manager', product: 'Self-Managed', roleTag: 'End User' },
+    ],
+  },
+  {
+    key: 'sales',
+    label: 'Sales',
+    roles: [
+      { title: 'CRO', product: 'Ultimate', roleTag: 'Decision Maker' },
+      { title: 'VP Sales', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Dir. Sales', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Sales Manager', product: 'Premium', roleTag: 'End User' },
+    ],
+  },
+  {
+    key: 'marketing',
+    label: 'Marketing',
+    roles: [
+      { title: 'CMO', product: 'Ultimate', roleTag: 'Decision Maker' },
+      { title: 'VP Marketing', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Dir. Marketing', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Mktg Manager', product: 'Premium', roleTag: 'End User' },
+    ],
+  },
+  {
+    key: 'product',
+    label: 'Product',
+    roles: [
+      { title: 'CPO', product: 'Ultimate', roleTag: 'Decision Maker' },
+      { title: 'VP Product', product: 'Dedicated', roleTag: 'Influencer' },
+      { title: 'Dir. Product', product: 'Dedicated', roleTag: 'Influencer' },
+      { title: 'Product Manager', product: 'Dedicated', roleTag: 'End User' },
+    ],
+  },
+  {
+    key: 'legal',
+    label: 'Legal',
+    roles: [
+      { title: 'General Counsel', product: 'Ultimate', roleTag: 'Decision Maker' },
+      { title: 'VP Legal', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Dir. Legal', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Legal Counsel', product: 'Premium', roleTag: 'End User' },
+    ],
+  },
+  {
+    key: 'support',
+    label: 'Support',
+    roles: [
+      { title: 'CCO', product: 'Ultimate', roleTag: 'Decision Maker' },
+      { title: 'VP Support', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Dir. Support', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Support Mgr', product: 'Premium', roleTag: 'End User' },
+    ],
+  },
+  {
+    key: 'hr',
+    label: 'HR',
+    roles: [
+      { title: 'CHRO', product: 'Ultimate', roleTag: 'Decision Maker' },
+      { title: 'VP People', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Dir. People', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'HR Manager', product: 'Premium', roleTag: 'End User' },
+    ],
+  },
+  {
+    key: 'finance',
+    label: 'Finance',
+    roles: [
+      { title: 'CFO', product: 'Ultimate', roleTag: 'Decision Maker' },
+      { title: 'VP Finance', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Dir. Finance', product: 'Premium', roleTag: 'Influencer' },
+      { title: 'Finance Mgr', product: 'Premium', roleTag: 'End User' },
+    ],
+  },
+];
+
 /* ── Contact matching ─────────────────────────────────────────── */
 
 function matchContact(
@@ -140,11 +225,18 @@ const roleTagColors: Record<string, string> = {
   'End User': 'bg-white/5 text-[var(--text-muted)]',
 };
 
-const productColors: Record<string, string> = {
+const anthropicProductColors: Record<string, string> = {
   Enterprise: 'text-purple-400',
   'Claude Code': 'text-emerald-400',
   'Claude.ai': 'text-blue-400',
   API: 'text-orange-400',
+};
+
+const gitlabProductColors: Record<string, string> = {
+  Ultimate: 'text-purple-400',
+  'Self-Managed': 'text-emerald-400',
+  Premium: 'text-blue-400',
+  Dedicated: 'text-orange-400',
 };
 
 /* ── Component ────────────────────────────────────────────────── */
@@ -158,6 +250,10 @@ export default function OrgPowerMap({
   senderTitle: string | null;
   companyName: string | null;
 }) {
+  const mode = useMode();
+  const depts = mode === 'gitlab' ? gitlabDepartments : anthropicDepartments;
+  const colors = mode === 'gitlab' ? gitlabProductColors : anthropicProductColors;
+
   const match = matchContact(senderTitle);
   const isCeoContact =
     senderTitle != null && /\b(ceo|coo|founder|co-founder)\b/i.test(senderTitle) &&
@@ -179,7 +275,7 @@ export default function OrgPowerMap({
         {(match || isCeoContact) && (
           <span
             className="text-xs px-2.5 py-1 rounded-full font-semibold"
-            style={{ background: 'rgba(212, 165, 116, 0.12)', color: 'var(--accent)' }}
+            style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}
           >
             Entry point: {senderName || senderTitle}
           </span>
@@ -198,8 +294,8 @@ export default function OrgPowerMap({
               }`}
               style={
                 isCeoContact
-                  ? { borderColor: 'var(--accent)', background: 'rgba(212, 165, 116, 0.1)', ringColor: 'rgba(212, 165, 116, 0.2)' }
-                  : { background: 'rgba(245, 240, 232, 0.08)', border: '1px solid var(--border)' }
+                  ? { borderColor: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', ringColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }
+                  : { background: 'var(--border)', border: '1px solid var(--border)' }
               }
             >
               {isCeoContact && (
@@ -226,7 +322,7 @@ export default function OrgPowerMap({
 
           {/* Department columns */}
           <div className="grid grid-cols-8 gap-1.5">
-            {departments.map((dept) => (
+            {depts.map((dept) => (
               <div key={dept.key} className="flex flex-col items-center">
                 {/* Vertical drop from horizontal bar */}
                 <div className="w-px h-3" style={{ background: 'var(--border)' }} />
@@ -245,7 +341,7 @@ export default function OrgPowerMap({
                   return (
                     <div key={role.title} className="w-full flex flex-col items-center">
                       {/* Vertical connector between nodes */}
-                      {i > 0 && <div className="w-px h-2" style={{ background: 'rgba(245, 240, 232, 0.06)' }} />}
+                      {i > 0 && <div className="w-px h-2" style={{ background: 'var(--border)' }} />}
 
                       <div
                         className={`w-full rounded-lg border p-1.5 text-center transition-all ${
@@ -255,7 +351,7 @@ export default function OrgPowerMap({
                         }`}
                         style={
                           isContact
-                            ? { borderColor: 'var(--accent)', background: 'rgba(212, 165, 116, 0.1)', boxShadow: '0 4px 12px rgba(212, 165, 116, 0.15)', ringColor: 'rgba(212, 165, 116, 0.2)' }
+                            ? { borderColor: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent)', ringColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }
                             : { borderColor: 'var(--border)', background: 'var(--bg-card-solid)' }
                         }
                       >
@@ -280,9 +376,9 @@ export default function OrgPowerMap({
 
                         <div
                           className={`text-[9px] font-medium mt-0.5 ${
-                            productColors[role.product] || ''
+                            colors[role.product] || ''
                           }`}
-                          style={productColors[role.product] ? {} : { color: 'var(--text-muted)' }}
+                          style={colors[role.product] ? {} : { color: 'var(--text-muted)' }}
                         >
                           {role.product}
                         </div>
@@ -314,7 +410,7 @@ export default function OrgPowerMap({
           </span>
         ))}
         <span className="ml-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>Products:</span>
-        {Object.entries(productColors).map(([label, cls]) => (
+        {Object.entries(colors).map(([label, cls]) => (
           <span key={label} className={`font-medium ${cls}`}>{label}</span>
         ))}
       </div>

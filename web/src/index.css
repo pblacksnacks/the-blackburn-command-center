@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root {
+:root, [data-theme="anthropic"] {
   --bg-base: #121110;
   --bg-card: rgba(30, 27, 24, 0.6);
   --bg-card-solid: #1e1b18;
@@ -12,6 +12,20 @@
   --accent-hover: #e0b88a;
   --border: rgba(245, 240, 232, 0.08);
   --border-hover: rgba(245, 240, 232, 0.15);
+}
+
+[data-theme="gitlab"] {
+  --bg-base: #171321;
+  --bg-card: rgba(43, 40, 56, 0.6);
+  --bg-card-solid: #2B2838;
+  --bg-elevated: rgba(35, 33, 80, 0.8);
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.55);
+  --accent: #FC6D26;
+  --accent-hover: #FCA326;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
 }
 
 body {
@@ -76,9 +90,9 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(245, 240, 232, 0.12);
+  background: var(--border-hover);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 240, 232, 0.2);
+  background: color-mix(in srgb, var(--text-primary) 20%, transparent);
 }

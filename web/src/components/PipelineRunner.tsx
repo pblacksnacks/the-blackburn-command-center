@@ -42,16 +42,16 @@ export default function PipelineRunner({ onComplete }: { onComplete?: () => void
           disabled={job?.status === 'running'}
           className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           style={{
-            background: 'rgba(212, 165, 116, 0.1)',
-            border: '1px solid rgba(212, 165, 116, 0.2)',
+            background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
             color: 'var(--accent)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(212, 165, 116, 0.2)';
+            e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 20%, transparent)';
             e.currentTarget.style.color = 'var(--accent-hover)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(212, 165, 116, 0.1)';
+            e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 10%, transparent)';
             e.currentTarget.style.color = 'var(--accent)';
           }}
         >

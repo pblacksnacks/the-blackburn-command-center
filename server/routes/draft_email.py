@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter, HTTPException
 
 from server.routes.call_prep import _load_api_key, _gather_context, _build_prompt
@@ -76,7 +78,7 @@ async def draft_email(sender_email: str):
             {
                 "role": "user",
                 "content": (
-                    "You are Parker Blackburn, an account executive at Anthropic. "
+                    f"You are Parker Blackburn, an account executive at {'GitLab' if os.environ.get('GITLAB_MODE', 'false').lower() == 'true' else 'Anthropic'}. "
                     "Write a personalized first-touch outreach email to this inbound lead. "
                     "This person has already shown interest by reaching out, so acknowledge that. "
                     "Reference something specific about their company, role, or situation to show "

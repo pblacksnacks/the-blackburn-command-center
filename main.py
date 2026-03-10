@@ -26,365 +26,34 @@ load_dotenv()
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from agents.lead_scorer import RawEmail, ScoringResult, LeadScorer
+from agents.lead_scorer import RawEmail, LeadScorer
 from agents.intake_agent import IntakeAgent, SqliteLeadStore, EmailSource
 from agents.research_agent import ResearchAgent
 from agents.briefing_agent import BriefingAgent
 
 
 # ---------------------------------------------------------------------------
-# 15 realistic demo emails — real SF high-tech companies (500-3000 employees)
+# Demo data loading — reads from demo_data/*.json
 # ---------------------------------------------------------------------------
 
-DEMO_EMAILS = [
-    # 1. Notion — product integration, ready to buy, strong
-    RawEmail(
-        email_id="demo-001",
-        sender_email="cto@notion.so",
-        sender_name="Fuzzy Khosrowshahi",
-        subject="Claude API integration for Notion AI — need enterprise contract by Q2",
-        body=(
-            "Hi Anthropic team,\n\n"
-            "I'm the CTO at Notion. We're currently using OpenAI's API for our "
-            "Notion AI features, but we've been benchmarking Claude Sonnet and Haiku for the past "
-            "6 weeks and the quality delta is significant — especially on long-context summarization.\n\n"
-            "We're looking to migrate our AI pipeline to Claude by end of Q2. This would cover:\n"
-            "- AI writing assistant (all Notion users, ~100M+ monthly)\n"
-            "- Q&A over workspace content\n"
-            "- Autofill for databases\n\n"
-            "We need an enterprise API agreement with committed throughput guarantees. Our current "
-            "monthly token volume is in the range of 50B tokens/month. Happy to share exact numbers "
-            "on a call.\n\n"
-            "Can we schedule a technical deep-dive this week? Our CEO Ivan Zhao would join.\n\n"
-            "Best,\nFuzzy Khosrowshahi\nCTO, Notion"
-        ),
-        received_at="2026-03-07T08:15:00Z",
-    ),
-    # 2. Webflow — internal productivity + exploring product, evaluating
-    RawEmail(
-        email_id="demo-002",
-        sender_email="arquay.harris@webflow.com",
-        sender_name="Arquay Harris",
-        subject="Evaluating Claude for internal ops + potential product features",
-        body=(
-            "Hi,\n\n"
-            "I lead the Engineering team at Webflow (~1,000 employees). We're exploring "
-            "two tracks:\n\n"
-            "1. Internal: our support team handles 3,000+ tickets/week. We want to use Claude to "
-            "auto-draft responses, classify tickets, and surface knowledge base gaps.\n\n"
-            "2. Product: our design team is prototyping an AI assistant inside the Webflow editor "
-            "that could generate CSS, suggest layouts, and explain code — Claude's code generation "
-            "quality caught our attention.\n\n"
-            "We're comparing Claude, GPT-4o, and Gemini. Our evaluation committee meets March 20th.\n\n"
-            "Could you send over enterprise pricing and a technical capabilities deck?\n\n"
-            "Thanks,\nArquay Harris\nVP Engineering, Webflow"
-        ),
-        received_at="2026-03-07T08:45:00Z",
-    ),
-    # 3. Verkada — product integration, strong signals
-    RawEmail(
-        email_id="demo-003",
-        sender_email="filip@verkada.com",
-        sender_name="Filip Kaliszan",
-        subject="Claude API for real-time video analytics — procurement timeline Q2",
-        body=(
-            "Team,\n\n"
-            "Filip Kaliszan, CEO & Co-founder at Verkada. We build cloud-managed security cameras "
-            "and access control systems for enterprise customers.\n\n"
-            "We want to integrate Claude's vision capabilities into our camera analytics pipeline. "
-            "Specific use cases:\n"
-            "- Real-time scene understanding and anomaly detection\n"
-            "- Natural language querying of video footage\n"
-            "- Automated incident report generation\n\n"
-            "We've been on GPT-4V but the latency and cost at our scale (200K+ cameras deployed) "
-            "isn't sustainable. Our VP of Product has approved budget for this switch.\n\n"
-            "Procurement needs to have a contract in hand by April 15. Security review is already "
-            "underway — can you send your SOC 2 Type II report and BAA?\n\n"
-            "Filip Kaliszan\nCEO & Co-founder, Verkada"
-        ),
-        received_at="2026-03-07T09:00:00Z",
-    ),
-    # 4. Gusto — dual motion, mid-stage evaluation
-    RawEmail(
-        email_id="demo-004",
-        sender_email="sarah.kim@gusto.com",
-        sender_name="Sarah Kim",
-        subject="AI-powered HR compliance + internal productivity tools",
-        body=(
-            "Hello,\n\n"
-            "I'm a Product Manager at Gusto working on our AI initiatives. We serve 300K+ small "
-            "businesses and are thinking about Claude in two ways:\n\n"
-            "Product side: We want to build an AI compliance advisor that helps our customers "
-            "navigate employment law across all 50 states. This needs to be extremely accurate "
-            "and cite sources — we think Claude's approach to safety and accuracy fits well.\n\n"
-            "Internal side: Our 2,500-person team spends significant time on manual document "
-            "review, internal knowledge lookups, and drafting customer communications.\n\n"
-            "We're early in the evaluation but our CPO is supportive. No formal timeline yet. "
-            "Can you share case studies from companies doing similar things?\n\n"
-            "Sarah Kim\nProduct Manager, Gusto"
-        ),
-        received_at="2026-03-07T09:30:00Z",
-    ),
-    # 5. Airtable — product integration, competitive bake-off
-    RawEmail(
-        email_id="demo-005",
-        sender_email="cto@airtable.com",
-        sender_name="David Azose",
-        subject="Re: AI features roadmap — Claude vs GPT comparison results",
-        body=(
-            "Hi,\n\n"
-            "Following up from our meeting at the AI Engineering Summit. We ran a head-to-head "
-            "evaluation of Claude Sonnet vs GPT-4o for our AI formula generation and data "
-            "classification features.\n\n"
-            "Results: Claude won on structured output accuracy (94% vs 87%) and was 40% cheaper "
-            "on our benchmark workload. GPT-4o was slightly faster on simple tasks.\n\n"
-            "We're ready to move forward with a pilot on Claude. 1,000 beta users initially, "
-            "expanding to all 500K+ Airtable customers if the pilot succeeds.\n\n"
-            "Key question: can you support our volume tier with guaranteed latency SLAs? "
-            "We need p95 < 2s for interactive features.\n\n"
-            "David Azose\nCTO, Airtable"
-        ),
-        received_at="2026-03-07T10:00:00Z",
-    ),
-    # 6. Carta — dual motion, researching phase
-    RawEmail(
-        email_id="demo-006",
-        sender_email="priya.patel@carta.com",
-        sender_name="Priya Patel",
-        subject="Exploring Claude for equity document analysis",
-        body=(
-            "Hi Anthropic,\n\n"
-            "Priya from Carta's engineering team. We manage equity for 40,000+ companies and "
-            "process millions of legal documents — cap tables, 409A valuations, SAFEs, etc.\n\n"
-            "We're interested in understanding how Claude handles:\n"
-            "- Complex legal document parsing and extraction\n"
-            "- Multi-document reasoning (comparing terms across agreements)\n"
-            "- Generating plain-language summaries for non-legal stakeholders\n\n"
-            "This is still early-stage exploration. We haven't committed to any AI provider yet. "
-            "Internally, some teams are using ChatGPT Team but there's no company-wide strategy.\n\n"
-            "Is there a sandbox or trial we could access?\n\n"
-            "Thanks,\nPriya Patel\nStaff Engineer, Carta"
-        ),
-        received_at="2026-03-07T10:15:00Z",
-    ),
-    # 7. Figma — product integration, strong
-    RawEmail(
-        email_id="demo-007",
-        sender_email="david.kossnick@figma.com",
-        sender_name="David Kossnick",
-        subject="Claude for Figma AI — replacing our current LLM provider",
-        body=(
-            "Hi,\n\n"
-            "David Kossnick, Head of AI Products at Figma. We launched our first AI features last year using "
-            "a mix of in-house models and third-party APIs. We're consolidating onto a single "
-            "provider for our next generation of AI tools:\n\n"
-            "- AI-powered design suggestions and auto-layout\n"
-            "- Natural language to design (describe → generate UI)\n"
-            "- Smart component recommendations\n"
-            "- Design-to-code translation\n\n"
-            "We need a provider that excels at visual understanding and structured output. "
-            "Our team has been impressed with Claude's capabilities in internal testing.\n\n"
-            "Budget is allocated. Decision by end of March. We'd need a dedicated account team "
-            "given the scale — Figma has 4M+ users generating AI requests.\n\n"
-            "Can we meet this week?\n\n"
-            "David Kossnick\nHead of AI Products, Figma"
-        ),
-        received_at="2026-03-07T10:30:00Z",
-    ),
-    # 8. Retool — product integration, evaluating
-    RawEmail(
-        email_id="demo-008",
-        sender_email="mark.schaaf@retool.com",
-        sender_name="Mark Schaaf",
-        subject="Embedding Claude in Retool's AI features",
-        body=(
-            "Hey Anthropic team,\n\n"
-            "Mark Schaaf from Retool. We build internal tools for companies like Amazon, NBC, and "
-            "DoorDash. We're adding AI capabilities to let our users:\n\n"
-            "- Generate SQL queries from natural language\n"
-            "- Build CRUD apps from descriptions\n"
-            "- Auto-generate API integrations\n\n"
-            "We currently use OpenAI but are evaluating alternatives. Claude's function calling "
-            "and code generation have tested well for us.\n\n"
-            "Our main concerns are: rate limits at scale, JSON mode reliability, and enterprise "
-            "support responsiveness. We have about 500 employees and serve thousands of companies.\n\n"
-            "Would love to discuss enterprise terms.\n\n"
-            "Mark Schaaf\nCOO, Retool"
-        ),
-        received_at="2026-03-07T11:00:00Z",
-    ),
-    # 9. Ironclad — dual motion, strong urgency, real research
-    RawEmail(
-        email_id="demo-009",
-        sender_email="jason@ironcladapp.com",
-        sender_name="Jason Boehmig",
-        subject="AI vendor evaluation -- board presentation Thursday",
-        body=(
-            "Hi team,\n\n"
-            "I'm Jason Boehmig, Co-founder and Executive Chairman at Ironclad. We're the "
-            "leading contract lifecycle management platform -- $200M ARR, named a Gartner "
-            "Magic Quadrant Leader three years running, serving enterprise customers including "
-            "Salesforce, L'Oreal, Mastercard, and OpenAI.\n\n"
-            "I'm reaching out because we're at a critical inflection point with our AI "
-            "strategy. Our AI Assist product and our newer Jurist legal assistant are "
-            "currently built on GPT-4, and we're experiencing accuracy issues that are "
-            "creating real risk. Our General Counsel Jasmine Singh flagged three contract "
-            "analysis errors last month that could have exposed our enterprise customers "
-            "to liability -- that's unacceptable when you're processing legal documents "
-            "for companies like Mastercard and Cisco.\n\n"
-            "We just hired a new VP of AI (Mingsheng Hong) and CPO (Herman Man) specifically "
-            "to scale our AI contracting capabilities. Our engineering team is already "
-            "evaluating multi-model architectures -- our job postings explicitly reference "
-            "Claude alongside other LLM providers. We need a model that handles legal "
-            "nuance, complex reasoning, and delivers enterprise-grade reliability.\n\n"
-            "Here's what we need:\n"
-            "1. Claude API for our contract review and redlining product -- replacing GPT-4 "
-            "where accuracy matters most\n"
-            "2. Claude Enterprise with SSO for our 793 employees doing legal research, "
-            "drafting, and analysis\n"
-            "3. A partner who understands legal tech -- we're not just buying an API, we're "
-            "building the future of AI contracting\n\n"
-            "We have $300-500K in budget allocated and I'm presenting vendor recommendations "
-            "to our board (which includes partners from Accel, Sequoia, and Franklin "
-            "Templeton) next Thursday. Our $3.2B valuation and $333M in funding means we "
-            "move fast when we find the right partner.\n\n"
-            "Can someone senior get on a call with me and our new VP of AI this week?\n\n"
-            "Jason Boehmig\nExecutive Chairman & Co-founder, Ironclad"
-        ),
-        received_at="2026-03-07T11:15:00Z",
-    ),
-    # 10. Brex — dual motion, evaluating
-    RawEmail(
-        email_id="demo-010",
-        sender_email="vp.product@brex.com",
-        sender_name="Karim Atiyeh",
-        subject="Claude for expense intelligence + internal automation",
-        body=(
-            "Hello,\n\n"
-            "Karim Atiyeh, VP of Product at Brex. We're the corporate card and spend management "
-            "platform for tech companies.\n\n"
-            "We see AI fitting in two places:\n"
-            "- Product: intelligent expense categorization, policy compliance checking, "
-            "anomaly detection on transactions, natural language spend queries\n"
-            "- Internal: automating our finance ops, customer support responses, and "
-            "compliance documentation across our 1,200-person team\n\n"
-            "We've been building with a mix of OpenAI and in-house models. Evaluating whether "
-            "to consolidate on a single provider. Cost and accuracy at scale are the key criteria.\n\n"
-            "Our AI team lead ran some benchmarks and Claude Haiku looks promising for the "
-            "high-volume transaction classification use case.\n\n"
-            "Can you share volume pricing and set up a technical call?\n\n"
-            "Karim\nVP Product, Brex"
-        ),
-        received_at="2026-03-07T11:45:00Z",
-    ),
-    # 11. Amplitude — product integration, researching
-    RawEmail(
-        email_id="demo-011",
-        sender_email="engineering@amplitude.com",
-        sender_name="Rachel Torres",
-        subject="AI-powered analytics — exploring LLM options",
-        body=(
-            "Hi,\n\n"
-            "Rachel Torres, Engineering Manager at Amplitude. We're building natural language "
-            "querying for our product analytics platform — so customers can ask questions like "
-            "'what caused our conversion drop last week?' instead of building complex funnels.\n\n"
-            "We're in early research mode. Looked at OpenAI, Anthropic, and Cohere. "
-            "No timeline yet but our VP of Engineering wants a recommendation by end of quarter.\n\n"
-            "Key things we care about: SQL generation accuracy, ability to reason over charts "
-            "and data visualizations, and cost at scale (we'd be processing millions of queries).\n\n"
-            "Any resources you can share would be helpful.\n\n"
-            "Rachel Torres\nEngineering Manager, Amplitude"
-        ),
-        received_at="2026-03-07T12:00:00Z",
-    ),
-    # 12. LaunchDarkly — internal productivity
-    RawEmail(
-        email_id="demo-012",
-        sender_email="coo@launchdarkly.com",
-        sender_name="Nadia Alramli",
-        subject="Claude.ai Team plan for LaunchDarkly",
-        body=(
-            "Hi,\n\n"
-            "Nadia here, COO at LaunchDarkly. We're a feature management platform with about "
-            "600 employees. Several teams have been using individual Claude.ai accounts and "
-            "the feedback has been overwhelmingly positive.\n\n"
-            "I'd like to roll this out as a company-wide tool. Main use cases:\n"
-            "- Engineering: code review, documentation, debugging\n"
-            "- Marketing: content creation, competitive analysis\n"
-            "- Sales: proposal drafting, call preparation\n"
-            "- Legal: contract review, policy drafting\n\n"
-            "What does Claude.ai Team or Enterprise pricing look like for ~600 seats? "
-            "We need SSO (Okta), usage analytics, and data retention controls.\n\n"
-            "Nadia Alramli\nCOO, LaunchDarkly"
-        ),
-        received_at="2026-03-07T12:30:00Z",
-    ),
-    # 13. Checkr — product integration, strong
-    RawEmail(
-        email_id="demo-013",
-        sender_email="cto@checkr.com",
-        sender_name="Daniel Yanisse",
-        subject="Claude API for automated background check analysis",
-        body=(
-            "Hi Anthropic,\n\n"
-            "Daniel Yanisse, CTO at Checkr. We run 20M+ background checks annually for "
-            "companies like Uber, Instacart, and DoorDash.\n\n"
-            "We want to use Claude to:\n"
-            "- Extract and normalize data from court records and public databases\n"
-            "- Classify adjudication outcomes with high accuracy\n"
-            "- Generate candidate-friendly explanations of results\n"
-            "- Reduce manual review by our compliance team (currently 40% of checks "
-            "need human review)\n\n"
-            "This is a regulated space — FCRA compliance is non-negotiable. We need to "
-            "understand Claude's approach to hallucination prevention and how you handle "
-            "sensitive PII.\n\n"
-            "Budget is approved, we're choosing between Claude and a fine-tuned open-source "
-            "approach. Timeline: decision by April 1.\n\n"
-            "Daniel Yanisse\nCTO, Checkr"
-        ),
-        received_at="2026-03-07T13:00:00Z",
-    ),
-    # 14. Samsara — support ticket, not new business
-    RawEmail(
-        email_id="demo-014",
-        sender_email="ops@samsara.com",
-        sender_name="Samsara IT Support",
-        subject="API rate limit errors on Claude Enterprise account",
-        body=(
-            "Hi Support,\n\n"
-            "We're hitting 429 rate limit errors on our Claude Enterprise API account "
-            "since yesterday afternoon. Our IoT data processing pipeline is backed up.\n\n"
-            "Account ID: ent-samsara-prod-01\n"
-            "Error rate: ~15% of requests in the last 12 hours\n"
-            "Affected endpoint: /v1/messages\n"
-            "Model: claude-sonnet-4\n\n"
-            "This is impacting our production workload. Please escalate.\n\n"
-            "Samsara IT Operations"
-        ),
-        received_at="2026-03-07T13:30:00Z",
-    ),
-    # 15. Loom — product integration, researching
-    RawEmail(
-        email_id="demo-015",
-        sender_email="sanchan@atlassian.com",
-        sender_name="Sanchan Saxena",
-        subject="Exploring Claude for video AI features",
-        body=(
-            "Hey,\n\n"
-            "Sanchan Saxena, Head of Loom Product Group at Atlassian. We do async video messaging — 25M+ users. "
-            "We're thinking about next-gen AI features:\n\n"
-            "- Automatic video summarization and chapters\n"
-            "- Smart search across video libraries ('find the meeting where we discussed Q3 OKRs')\n"
-            "- Auto-generated follow-up tasks from video content\n\n"
-            "We're early stage — no vendor selected yet, no formal budget allocated. But our "
-            "leadership is very bullish on AI features driving conversion from free to paid.\n\n"
-            "Can we get access to the API to prototype? Also curious about your multimodal "
-            "roadmap — video understanding would be a game-changer for us.\n\n"
-            "Sanchan Saxena\nHead of Loom Product Group, Atlassian"
-        ),
-        received_at="2026-03-07T14:00:00Z",
-    ),
-]
+DEMO_DATA_DIR = PROJECT_ROOT / "demo_data"
+
+GITLAB_MODE = os.environ.get("GITLAB_MODE", "false").lower() == "true"
+
+DB_PATH = os.environ.get("TRIAGE_DB", "triage.db")
+REPORTS_DIR = "reports"
+
+
+def _load_demo_emails() -> list[RawEmail]:
+    """Load demo emails from the appropriate JSON file."""
+    filename = "gitlab.json" if GITLAB_MODE else "anthropic.json"
+    path = DEMO_DATA_DIR / filename
+    if not path.exists():
+        print(f"ERROR: Demo data file not found: {path}")
+        sys.exit(1)
+    with open(path) as f:
+        data = json.load(f)
+    return [RawEmail(**entry) for entry in data]
 
 
 class DemoEmailSource:
@@ -398,11 +67,6 @@ class DemoEmailSource:
 # ---------------------------------------------------------------------------
 # Pipeline stages
 # ---------------------------------------------------------------------------
-
-GITLAB_MODE = os.environ.get("GITLAB_MODE", "false").lower() == "true"
-
-DB_PATH = os.environ.get("TRIAGE_DB", "triage.db")
-REPORTS_DIR = "reports"
 
 
 def _get_api_key() -> str:
@@ -418,13 +82,13 @@ def run_intake(demo: bool) -> None:
     api_key = _get_api_key()
 
     if demo:
-        email_source = DemoEmailSource(DEMO_EMAILS)
+        email_source = DemoEmailSource(_load_demo_emails())
     else:
         print("Live Gmail mode not yet implemented. Use --demo.")
         sys.exit(1)
 
     store = SqliteLeadStore(DB_PATH)
-    scorer = LeadScorer(api_key=api_key)
+    scorer = LeadScorer(api_key=api_key, gitlab_mode=GITLAB_MODE)
     agent = IntakeAgent(email_source=email_source, scorer=scorer, store=store)
 
     print(f"\n{'='*70}")

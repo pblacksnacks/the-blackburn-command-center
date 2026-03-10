@@ -23,6 +23,10 @@ if PROJECT_ROOT not in sys.path:
 router = APIRouter(prefix="/api/leads", tags=["call-prep"])
 
 
+def _is_gitlab_mode() -> bool:
+    return os.environ.get("GITLAB_MODE", "false").lower() == "true"
+
+
 # ── Coercion helpers ─────────────────────────────────────────────
 
 
@@ -160,7 +164,7 @@ def _build_prompt(ctx: dict) -> str:
 - Use Case: {lead.get('use_case')}
 - Product Fit: {lead.get('product_line_fit')}
 - Buying Stage: {lead.get('buying_stage')}
-- Current AI Provider: {lead.get('current_ai_provider') or 'Unknown'}
+- {'Current Toolchain' if _is_gitlab_mode() else 'Current AI Provider'}: {lead.get('current_ai_provider') or 'Unknown'}
 - Estimated ACV: ${lead.get('estimated_acv') or 0:,}
 - Deal Size Tier: {lead.get('deal_size_tier')}
 - TAM Estimate: {lead.get('tam_estimate') or 'Unknown'}
@@ -322,7 +326,7 @@ CALL_PREP_TOOL = {
             },
             "competitive_positioning": {
                 "type": "string",
-                "description": "Claude's specific advantages vs their current provider for their specific use cases.",
+                "description": "The product's specific advantages vs their current provider for their specific use cases.",
             },
             "land_strategy": {
                 "type": "string",
@@ -466,13 +470,19 @@ def _build_call_prep_pdf(lead: dict, data: CallPrepExportRequest) -> Path:
             detail += f", {title_str}"
         detail += f"   |   Grade {grade}  ({score}/100)   |   ACV {acv_str}   |   {today}"
         pdf.cell(0, 4, detail, new_x="LMARGIN")
-        pdf.set_draw_color(212, 165, 116)
+        if _is_gitlab_mode():
+            pdf.set_draw_color(252, 109, 38)
+        else:
+            pdf.set_draw_color(212, 165, 116)
         pdf.set_line_width(0.8)
         pdf.line(0, 18, W, 18)
 
     def _section_header(x: float, y: float, text: str) -> float:
         pdf.set_font("Helvetica", "B", HEADER_FONT_SIZE)
-        pdf.set_text_color(212, 165, 116)
+        if _is_gitlab_mode():
+            pdf.set_text_color(252, 109, 38)
+        else:
+            pdf.set_text_color(212, 165, 116)
         pdf.set_xy(x, y)
         pdf.cell(COL_W, LINE_H, text.upper(), new_x="LMARGIN")
         pdf.set_draw_color(200, 200, 200)
@@ -619,7 +629,7 @@ def _build_call_prep_pdf(lead: dict, data: CallPrepExportRequest) -> Path:
 
 @router.post("/{sender_email:path}/call-prep-pptx")
 async def generate_call_prep_pptx(sender_email: str, data: CallPrepExportRequest):
-    """Generate an Anthropic-branded customer-facing PPTX deck with speaker notes."""
+    """Generate a branded customer-facing PPTX deck with speaker notes."""
     lead = get_lead(sender_email)
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -628,7 +638,7 @@ async def generate_call_prep_pptx(sender_email: str, data: CallPrepExportRequest
     return FileResponse(
         path=str(output_path),
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        filename=f"anthropic-{lead.get('company_name', 'prospect').replace(' ', '-').lower()}.pptx",
+        filename=f"{'gitlab' if _is_gitlab_mode() else 'anthropic'}-{lead.get('company_name', 'prospect').replace(' ', '-').lower()}.pptx",
     )
 
 
@@ -639,13 +649,21 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     from pptx.enum.text import PP_ALIGN
     from pptx.util import Inches, Pt
 
-    # ── Anthropic brand colours ──
-    BG_CREAM = RGBColor(245, 240, 232)
-    TEXT_DARK = RGBColor(26, 26, 26)
-    TEXT_BODY = RGBColor(68, 64, 60)
-    ACCENT = RGBColor(212, 165, 116)
-    MUTED = RGBColor(140, 135, 125)
-    WHITE = RGBColor(255, 255, 255)
+    # ── Brand colours ──
+    if _is_gitlab_mode():
+        BG_CREAM = RGBColor(23, 19, 33)       # #171321
+        TEXT_DARK = RGBColor(255, 255, 255)
+        TEXT_BODY = RGBColor(200, 200, 200)
+        ACCENT = RGBColor(252, 109, 38)        # #FC6D26
+        MUTED = RGBColor(162, 161, 166)
+        WHITE = RGBColor(255, 255, 255)
+    else:
+        BG_CREAM = RGBColor(245, 240, 232)
+        TEXT_DARK = RGBColor(26, 26, 26)
+        TEXT_BODY = RGBColor(68, 64, 60)
+        ACCENT = RGBColor(212, 165, 116)
+        MUTED = RGBColor(140, 135, 125)
+        WHITE = RGBColor(255, 255, 255)
     FONT = "Arial"
 
     company = lead.get("company_name") or "Your Company"
@@ -700,9 +718,11 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
         s.line.color.rgb = RGBColor(220, 215, 205)
         s.line.width = Pt(0.5)
 
+    _brand_name = "gitlab" if _is_gitlab_mode() else "anthropic"
+
     def _header(slide, title: str):
         _bar(slide, 0, 0, 13.333, 0.08)
-        _t(slide, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
+        _t(slide, 1.0, 0.6, 6, 0.5, _brand_name, size=14, color=ACCENT, bold=True)
         _t(slide, 1.0, 1.3, 10, 0.8, title, size=36, bold=True)
         _bar(slide, 1.0, 2.2, 1.0, 0.05)
 
@@ -712,7 +732,7 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     s1 = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(s1)
     _bar(s1, 0, 0, 13.333, 0.08)
-    _t(s1, 1.0, 0.6, 6, 0.5, "anthropic", size=14, color=ACCENT, bold=True)
+    _t(s1, 1.0, 0.6, 6, 0.5, _brand_name, size=14, color=ACCENT, bold=True)
     _t(s1, 1.0, 2.0, 10, 1.5,
        f"Partnering with {company}\non AI", size=40, bold=True)
     _bar(s1, 1.0, 4.0, 1.5, 0.06)
@@ -738,7 +758,7 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     agenda_labels = [
         "Your AI Landscape Today",
         "Key Challenges & Requirements",
-        "How Claude Can Help",
+        "How GitLab Can Help" if _is_gitlab_mode() else "How Claude Can Help",
         "Pilot Approach & Next Steps",
     ]
     y = 2.6
@@ -812,7 +832,7 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     # ════════════════════════════════════════════════════════════════
     s4 = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(s4)
-    _header(s4, f"Why Claude for {company}")
+    _header(s4, f"Why {'GitLab' if _is_gitlab_mode() else 'Claude'} for {company}")
 
     value_props = [
         ("Superior Legal Reasoning",
@@ -843,8 +863,8 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     notes_why += (
         f"\nKey: Connect advantages to THEIR specific pain points. "
         f"Reference what they said in the discovery section. "
-        f"'Based on what you shared about X, here's why Claude is a good fit...'\n\n"
-        f"Do NOT lead with features. Lead with their pain, then bridge to how Claude solves it."
+        f"'Based on what you shared about X, here\\'s why {'GitLab' if _is_gitlab_mode() else 'Claude'} is a good fit...'\n\n"
+        f"Do NOT lead with features. Lead with their pain, then bridge to how {'GitLab' if _is_gitlab_mode() else 'Claude'} solves it."
     )
     _n(s4, notes_why)
 
@@ -916,7 +936,7 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     d3 = (date.today() + timedelta(days=14)).strftime("%b %d")
 
     actions = [
-        ("Board presentation materials", "Parker / Anthropic", d1),
+        ("Board presentation materials", "Parker / GitLab" if _is_gitlab_mode() else "Parker / Anthropic", d1),
         ("Technical deep-dive session", contact, d2),
         ("Pilot kickoff", "Joint", d3),
     ]
@@ -936,7 +956,7 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
         y += 1.0
 
     _t(s6, 1.0, 6.5, 10, 0.5,
-       "Parker Blackburn  |  parker@anthropic.com  |  Anthropic",
+       "Parker Blackburn  |  parker@gitlab.com  |  GitLab" if _is_gitlab_mode() else "Parker Blackburn  |  parker@anthropic.com  |  Anthropic",
        size=14, color=MUTED)
 
     notes_next = (

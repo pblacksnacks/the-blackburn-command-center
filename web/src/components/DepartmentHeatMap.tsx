@@ -1,3 +1,5 @@
+import { useMode } from '../modeContext';
+
 /* ── Department config ─────────────────────────────────────────── */
 
 const deptConfig = [
@@ -11,15 +13,22 @@ const deptConfig = [
   { key: 'Finance', fraction: 0.05 },
 ] as const;
 
-const products = [
+const anthropicProducts = [
   { key: 'Claude API', price: 4800 },
   { key: 'Claude.ai', price: 1200 },
   { key: 'Claude Code', price: 2400 },
   { key: 'Claude Enterprise', price: 1800 },
 ] as const;
 
+const gitlabProducts = [
+  { key: 'GitLab Ultimate', price: 5940 },
+  { key: 'GitLab Premium', price: 2280 },
+  { key: 'GitLab Self-Managed', price: 3480 },
+  { key: 'GitLab Dedicated', price: 4560 },
+] as const;
+
 /* Adoption rate: fraction of dept employees expected to use each product */
-const fitMatrix: Record<string, Record<string, number>> = {
+const anthropicFitMatrix: Record<string, Record<string, number>> = {
   'Claude API': {
     Engineering: 0.70, Sales: 0.05, Marketing: 0.05, Product: 0.50,
     Legal: 0.02, Support: 0.15, HR: 0.02, Finance: 0.02,
@@ -38,6 +47,25 @@ const fitMatrix: Record<string, Record<string, number>> = {
   },
 };
 
+const gitlabFitMatrix: Record<string, Record<string, number>> = {
+  'GitLab Ultimate': {
+    Engineering: 0.75, Sales: 0.10, Marketing: 0.08, Product: 0.55,
+    Legal: 0.05, Support: 0.20, HR: 0.03, Finance: 0.05,
+  },
+  'GitLab Premium': {
+    Engineering: 0.50, Sales: 0.65, Marketing: 0.70, Product: 0.45,
+    Legal: 0.55, Support: 0.50, HR: 0.60, Finance: 0.45,
+  },
+  'GitLab Self-Managed': {
+    Engineering: 0.80, Sales: 0.0, Marketing: 0.0, Product: 0.30,
+    Legal: 0.0, Support: 0.10, HR: 0.0, Finance: 0.0,
+  },
+  'GitLab Dedicated': {
+    Engineering: 0.20, Sales: 0.15, Marketing: 0.10, Product: 0.15,
+    Legal: 0.08, Support: 0.12, HR: 0.08, Finance: 0.08,
+  },
+};
+
 /* ── Computation ──────────────────────────────────────────────── */
 
 interface Cell {
@@ -47,7 +75,11 @@ interface Cell {
   value: number;
 }
 
-function computeGrid(totalEmployees: number) {
+function computeGrid(
+  totalEmployees: number,
+  products: readonly { key: string; price: number }[],
+  fitMatrix: Record<string, Record<string, number>>,
+) {
   const cells: Cell[] = [];
   let maxValue = 0;
 
@@ -66,7 +98,7 @@ function computeGrid(totalEmployees: number) {
 }
 
 function intensityStyle(value: number, maxValue: number): React.CSSProperties {
-  if (maxValue === 0 || value === 0) return { background: 'rgba(245, 240, 232, 0.03)', color: 'var(--text-muted)' };
+  if (maxValue === 0 || value === 0) return { background: 'color-mix(in srgb, var(--text-primary) 3%, transparent)', color: 'var(--text-muted)' };
   const ratio = value / maxValue;
   if (ratio >= 0.6) return { background: 'rgba(16, 185, 129, 0.3)', color: '#6ee7b7' };
   if (ratio >= 0.3) return { background: 'rgba(16, 185, 129, 0.18)', color: '#6ee7b7' };
@@ -89,7 +121,11 @@ export default function DepartmentHeatMap({
   employeeEstimate: number;
   companyName: string | null;
 }) {
-  const { cells, maxValue } = computeGrid(employeeEstimate);
+  const mode = useMode();
+  const products = mode === 'gitlab' ? gitlabProducts : anthropicProducts;
+  const fitMatrix = mode === 'gitlab' ? gitlabFitMatrix : anthropicFitMatrix;
+
+  const { cells, maxValue } = computeGrid(employeeEstimate, products, fitMatrix);
 
   const getCell = (product: string, dept: string) =>
     cells.find((c) => c.product === product && c.dept === dept)!;
@@ -194,7 +230,7 @@ export default function DepartmentHeatMap({
                 <td key={dt.dept} className="p-0.5">
                   <div
                     className="rounded-lg p-2 text-center"
-                    style={{ background: 'rgba(245, 240, 232, 0.08)', color: 'var(--text-primary)' }}
+                    style={{ background: 'var(--border)', color: 'var(--text-primary)' }}
                   >
                     <div className="font-bold tabular-nums">{dt.seats}</div>
                     <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatValue(dt.value)}</div>
@@ -209,8 +245,8 @@ export default function DepartmentHeatMap({
                 <div
                   className="flex items-center justify-between rounded-lg px-4 py-3"
                   style={{
-                    background: 'linear-gradient(to right, rgba(212, 165, 116, 0.12), rgba(212, 165, 116, 0.06))',
-                    border: '1px solid rgba(212, 165, 116, 0.2)',
+                    background: 'linear-gradient(to right, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 6%, transparent))',
+                    border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
                   }}
                 >
                   <div>

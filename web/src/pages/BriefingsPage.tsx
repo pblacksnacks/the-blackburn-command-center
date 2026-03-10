@@ -59,10 +59,10 @@ export default function BriefingsPage({ refreshKey }: { refreshKey: number }) {
                 onClick={() => loadDetail(b.briefing_date)}
                 className={`w-full text-left rounded-xl p-4 text-sm transition-all animate-fade-in-up stagger-${Math.min(idx + 1, 9)}`}
                 style={{
-                  border: `1px solid ${isActive ? 'rgba(212, 165, 116, 0.4)' : 'var(--border)'}`,
-                  background: isActive ? 'rgba(212, 165, 116, 0.08)' : 'var(--bg-card)',
+                  border: `1px solid ${isActive ? 'color-mix(in srgb, var(--accent) 40%, transparent)' : 'var(--border)'}`,
+                  background: isActive ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : 'var(--bg-card)',
                 }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(245, 240, 232, 0.06)'; }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                 onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-card)'; }}
               >
                 <div className="flex items-center gap-2 font-semibold" style={{ color: isActive ? 'var(--accent)' : 'var(--text-primary)' }}>
@@ -87,7 +87,7 @@ export default function BriefingsPage({ refreshKey }: { refreshKey: number }) {
               {/* Header with accent bar */}
               <div
                 className="flex items-center justify-between px-6 py-4 rounded-t-xl"
-                style={{ borderBottom: '1px solid var(--border)', background: 'rgba(212, 165, 116, 0.04)' }}
+                style={{ borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb, var(--accent) 4%, transparent)' }}
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -109,16 +109,16 @@ export default function BriefingsPage({ refreshKey }: { refreshKey: number }) {
                     className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-all"
                     style={{
                       color: 'var(--accent)',
-                      border: '1px solid rgba(212, 165, 116, 0.3)',
-                      background: 'rgba(212, 165, 116, 0.06)',
+                      border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
+                      background: 'color-mix(in srgb, var(--accent) 6%, transparent)',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(212, 165, 116, 0.15)';
-                      e.currentTarget.style.borderColor = 'rgba(212, 165, 116, 0.5)';
+                      e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 15%, transparent)';
+                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 50%, transparent)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(212, 165, 116, 0.06)';
-                      e.currentTarget.style.borderColor = 'rgba(212, 165, 116, 0.3)';
+                      e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 6%, transparent)';
+                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 30%, transparent)';
                     }}
                   >
                     <Download className="h-4 w-4" /> Download PPTX

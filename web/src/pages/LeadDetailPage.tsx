@@ -13,6 +13,7 @@ import {
   type Lead, type ContactLinkedIn, type CompanyResearch, type CallPrep, type DraftEmail,
 } from '../api';
 import GradeBadge from '../components/GradeBadge';
+import { useMode } from '../modeContext';
 import MeddpiccBadge from '../components/MeddpiccBadge';
 import OrgPowerMap from '../components/OrgPowerMap';
 import DepartmentHeatMap from '../components/DepartmentHeatMap';
@@ -28,7 +29,7 @@ const cardStyle: React.CSSProperties = {
 const ScoreBar = ({ label, value, max }: { label: string; value: number; max: number }) => (
   <div className="flex items-center gap-2">
     <span className="text-xs w-28" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-    <div className="flex-1 rounded-full h-2" style={{ background: 'rgba(245, 240, 232, 0.08)' }}>
+    <div className="flex-1 rounded-full h-2" style={{ background: 'var(--border)' }}>
       <div
         className="h-2 rounded-full animate-bar-fill"
         style={{ width: `${(value / max) * 100}%`, background: 'linear-gradient(to right, var(--accent), var(--accent-hover))' }}
@@ -152,7 +153,7 @@ class CallPrepErrorBoundary extends Component<
             <button
               onClick={this.props.onClose}
               className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors"
-              style={{ background: 'rgba(245, 240, 232, 0.06)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
             >
               Close
             </button>
@@ -251,7 +252,7 @@ function CallPrepModal({
       className="rounded-lg p-5 animate-fade-in-up"
       style={{
         background: 'var(--bg-card)',
-        border: accentBorder ? '1px solid rgba(212, 165, 116, 0.2)' : '1px solid var(--border)',
+        border: accentBorder ? '1px solid color-mix(in srgb, var(--accent) 20%, transparent)' : '1px solid var(--border)',
       }}
     >
       <div className="flex items-center gap-2 mb-3">
@@ -272,11 +273,11 @@ function CallPrepModal({
       </div>
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <div className="h-4 rounded w-40 mb-3" style={{ background: 'rgba(212, 165, 116, 0.12)' }} />
+          <div className="h-4 rounded w-40 mb-3" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }} />
           <div className="space-y-2">
-            <div className="h-3 rounded w-full animate-pulse" style={{ background: 'rgba(245, 240, 232, 0.06)', animationDelay: `${i * 0.1}s` }} />
-            <div className="h-3 rounded w-4/5 animate-pulse" style={{ background: 'rgba(245, 240, 232, 0.06)', animationDelay: `${i * 0.1 + 0.05}s` }} />
-            <div className="h-3 rounded w-3/5 animate-pulse" style={{ background: 'rgba(245, 240, 232, 0.06)', animationDelay: `${i * 0.1 + 0.1}s` }} />
+            <div className="h-3 rounded w-full animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: `${i * 0.1}s` }} />
+            <div className="h-3 rounded w-4/5 animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: `${i * 0.1 + 0.05}s` }} />
+            <div className="h-3 rounded w-3/5 animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: `${i * 0.1 + 0.1}s` }} />
           </div>
         </div>
       ))}
@@ -301,7 +302,7 @@ function CallPrepModal({
           <div className="flex items-center gap-3">
             <div
               className="flex items-center justify-center w-8 h-8 rounded-lg"
-              style={{ background: 'rgba(212, 165, 116, 0.15)' }}
+              style={{ background: 'color-mix(in srgb, var(--accent) 15%, transparent)' }}
             >
               <Zap className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             </div>
@@ -321,7 +322,7 @@ function CallPrepModal({
                   onClick={onExportPdf}
                   disabled={exportingPdf}
                   className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors disabled:opacity-50"
-                  style={{ background: 'rgba(245, 240, 232, 0.06)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                  style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
                 >
                   {exportingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
                   Pre-Call Brief (PDF)
@@ -330,7 +331,7 @@ function CallPrepModal({
                   onClick={onExportPptx}
                   disabled={exportingPptx}
                   className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors disabled:opacity-50"
-                  style={{ background: 'rgba(245, 240, 232, 0.06)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                  style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
                 >
                   {exportingPptx ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
                   Customer Deck (PPTX)
@@ -338,7 +339,7 @@ function CallPrepModal({
                 <button
                   onClick={handleCopy}
                   className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors"
-                  style={{ background: 'rgba(212, 165, 116, 0.1)', border: '1px solid rgba(212, 165, 116, 0.2)', color: 'var(--accent)' }}
+                  style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}
                 >
                   {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                   {copied ? 'Copied' : 'Copy All'}
@@ -407,7 +408,7 @@ function CallPrepModal({
                     <div key={i} className="flex items-start gap-3">
                       <span
                         className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
-                        style={{ background: 'rgba(212, 165, 116, 0.12)', color: 'var(--accent)' }}
+                        style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}
                       >
                         {i + 1}
                       </span>
@@ -427,7 +428,7 @@ function CallPrepModal({
                     <div key={i} className="flex items-start gap-3">
                       <span
                         className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
-                        style={{ background: 'rgba(212, 165, 116, 0.12)', color: 'var(--accent)' }}
+                        style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}
                       >
                         {i + 1}
                       </span>
@@ -443,7 +444,7 @@ function CallPrepModal({
                 'Objection Prep',
                 <div className="space-y-4">
                   {objections.map((obj, i) => (
-                    <div key={i} className="rounded-lg p-4" style={{ background: 'rgba(245, 240, 232, 0.03)', border: '1px solid var(--border)' }}>
+                    <div key={i} className="rounded-lg p-4" style={{ background: 'color-mix(in srgb, var(--text-primary) 3%, transparent)', border: '1px solid var(--border)' }}>
                       <div className="flex items-start gap-2 mb-2">
                         <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-amber-400" />
                         <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{obj.objection}</p>
@@ -485,7 +486,7 @@ function CallPrepModal({
                   'Proposed Next Step',
                   <p
                     className="text-sm leading-relaxed rounded-lg p-3"
-                    style={{ background: 'rgba(212, 165, 116, 0.08)', border: '1px solid rgba(212, 165, 116, 0.15)', color: 'var(--text-primary)' }}
+                    style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--text-primary)' }}
                   >
                     {data.proposed_next_step}
                   </p>,
@@ -561,7 +562,7 @@ function DraftEmailModal({
           <div className="flex items-center gap-3">
             <div
               className="flex items-center justify-center w-8 h-8 rounded-lg"
-              style={{ background: 'rgba(212, 165, 116, 0.15)' }}
+              style={{ background: 'color-mix(in srgb, var(--accent) 15%, transparent)' }}
             >
               <Send className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             </div>
@@ -594,12 +595,12 @@ function DraftEmailModal({
             </div>
             <div className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
               <div className="space-y-3">
-                <div className="h-4 rounded w-48 animate-pulse" style={{ background: 'rgba(212, 165, 116, 0.12)' }} />
-                <div className="h-3 rounded w-64 animate-pulse" style={{ background: 'rgba(245, 240, 232, 0.06)', animationDelay: '0.1s' }} />
-                <div className="h-3 rounded w-56 animate-pulse" style={{ background: 'rgba(245, 240, 232, 0.06)', animationDelay: '0.15s' }} />
+                <div className="h-4 rounded w-48 animate-pulse" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }} />
+                <div className="h-3 rounded w-64 animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: '0.1s' }} />
+                <div className="h-3 rounded w-56 animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: '0.15s' }} />
                 <div className="mt-4 space-y-2">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-3 rounded animate-pulse" style={{ background: 'rgba(245, 240, 232, 0.06)', width: `${90 - i * 8}%`, animationDelay: `${0.2 + i * 0.05}s` }} />
+                    <div key={i} className="h-3 rounded animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', width: `${90 - i * 8}%`, animationDelay: `${0.2 + i * 0.05}s` }} />
                   ))}
                 </div>
               </div>
@@ -629,7 +630,7 @@ function DraftEmailModal({
                 <div className="flex items-center gap-2 text-sm">
                   <span className="w-16 text-right flex-shrink-0" style={{ color: 'var(--text-muted)' }}>From</span>
                   <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Parker Blackburn</span>
-                  <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(212, 165, 116, 0.1)', color: 'var(--accent)' }}>Anthropic</span>
+                  <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)', color: 'var(--accent)' }}>{mode === 'gitlab' ? 'GitLab' : 'Anthropic'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="w-16 text-right flex-shrink-0" style={{ color: 'var(--text-muted)' }}>To</span>
@@ -657,7 +658,7 @@ function DraftEmailModal({
               <button
                 onClick={handleCopy}
                 className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors"
-                style={{ background: 'rgba(212, 165, 116, 0.1)', border: '1px solid rgba(212, 165, 116, 0.2)', color: 'var(--accent)' }}
+                style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)', color: 'var(--accent)' }}
               >
                 {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                 {copied ? 'Copied' : 'Copy to Clipboard'}
@@ -676,7 +677,7 @@ function DraftEmailModal({
                 onClick={onRegenerate}
                 disabled={loading}
                 className="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-colors disabled:opacity-50"
-                style={{ background: 'rgba(245, 240, 232, 0.06)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
               >
                 <RefreshCw className="h-3 w-3" />
                 Regenerate
@@ -723,6 +724,7 @@ function DraftEmailModal({
 /* ── Page component ───────────────────────────────────────────── */
 
 export default function LeadDetailPage() {
+  const mode = useMode();
   const { email } = useParams<{ email: string }>();
   const [lead, setLead] = useState<Lead | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -942,10 +944,10 @@ export default function LeadDetailPage() {
                 onClick={handleDraftEmail}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 style={{
-                  background: 'rgba(212, 165, 116, 0.12)',
-                  border: '1px solid rgba(212, 165, 116, 0.25)',
+                  background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
                   color: 'var(--accent)',
-                  boxShadow: '0 2px 8px rgba(212, 165, 116, 0.1)',
+                  boxShadow: '0 2px 8px color-mix(in srgb, var(--accent) 10%, transparent)',
                 }}
               >
                 <Send className="h-4 w-4" />
@@ -955,10 +957,10 @@ export default function LeadDetailPage() {
                 onClick={handleCallPrep}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                 style={{
-                  background: 'rgba(212, 165, 116, 0.12)',
-                  border: '1px solid rgba(212, 165, 116, 0.25)',
+                  background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
                   color: 'var(--accent)',
-                  boxShadow: '0 2px 8px rgba(212, 165, 116, 0.1)',
+                  boxShadow: '0 2px 8px color-mix(in srgb, var(--accent) 10%, transparent)',
                 }}
               >
                 <Zap className="h-4 w-4" />
@@ -969,7 +971,7 @@ export default function LeadDetailPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
-                style={{ background: 'var(--accent)', color: '#121110', boxShadow: '0 2px 8px rgba(212, 165, 116, 0.3)' }}
+                style={{ background: 'var(--accent)', color: '#121110', boxShadow: '0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent)' }}
               >
                 <Calendar className="h-4 w-4" />
                 Schedule Call
@@ -1015,9 +1017,9 @@ export default function LeadDetailPage() {
           <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
             <Loader2 className="h-4 w-4 animate-spin" /> Searching LinkedIn...
             <div className="flex-1 space-y-2 ml-4">
-              <div className="h-4 rounded animate-pulse w-48" style={{ background: 'rgba(245, 240, 232, 0.06)' }} />
-              <div className="h-3 rounded animate-pulse w-64" style={{ background: 'rgba(245, 240, 232, 0.06)' }} />
-              <div className="h-3 rounded animate-pulse w-40" style={{ background: 'rgba(245, 240, 232, 0.06)' }} />
+              <div className="h-4 rounded animate-pulse w-48" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }} />
+              <div className="h-3 rounded animate-pulse w-64" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }} />
+              <div className="h-3 rounded animate-pulse w-40" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }} />
             </div>
           </div>
         ) : linkedIn ? (
@@ -1074,7 +1076,7 @@ export default function LeadDetailPage() {
         ) : linkedInError ? (
           <div
             className="flex items-center justify-between rounded-lg px-4 py-3"
-            style={{ background: 'rgba(245, 240, 232, 0.04)', border: '1px solid var(--border)' }}
+            style={{ background: 'color-mix(in srgb, var(--text-primary) 4%, transparent)', border: '1px solid var(--border)' }}
           >
             <span className="text-sm" style={{ color: 'var(--text-muted)' }}>LinkedIn profile lookup unavailable</span>
             <button
@@ -1095,7 +1097,7 @@ export default function LeadDetailPage() {
                   });
               }}
               className="inline-flex items-center gap-1.5 text-xs font-medium rounded-md px-2.5 py-1.5 transition-colors"
-              style={{ background: 'rgba(245, 240, 232, 0.06)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
             >
               <RefreshCw className="h-3 w-3" /> Retry
             </button>
@@ -1159,7 +1161,7 @@ export default function LeadDetailPage() {
           </h2>
           <p
             className="text-sm rounded p-3 mb-4"
-            style={{ background: 'rgba(212, 165, 116, 0.08)', border: '1px solid rgba(212, 165, 116, 0.15)', color: 'var(--text-primary)' }}
+            style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 15%, transparent)', color: 'var(--text-primary)' }}
           >
             {lead.next_best_action}
           </p>
@@ -1248,7 +1250,7 @@ export default function LeadDetailPage() {
             </ul>
           </div>
           {/* How to Win */}
-          <div className="rounded-lg p-4" style={{ background: 'rgba(212, 165, 116, 0.06)', border: '1px solid rgba(212, 165, 116, 0.15)' }}>
+          <div className="rounded-lg p-4" style={{ background: 'color-mix(in srgb, var(--accent) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 15%, transparent)' }}>
             <h3 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--accent)' }}>How to Win</h3>
             <ul className="space-y-2">
               {(lead.partnership_synergies_json || []).slice(0, 2).map((s, i) => (

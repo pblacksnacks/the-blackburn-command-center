@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -156,7 +157,10 @@ def _add_title_slide(prs: Presentation, briefing: DailyBriefing) -> None:
 
     title = slide.shapes.add_textbox(Inches(0.7), Inches(0.6), Inches(12), Inches(0.8))
     p = title.text_frame.paragraphs[0]
-    p.text = f"Anthropic Mid-Market — Daily Lead Briefing"
+    if os.environ.get("GITLAB_MODE", "false").lower() == "true":
+        p.text = "GitLab Sales — Daily Lead Briefing"
+    else:
+        p.text = "Anthropic Mid-Market — Daily Lead Briefing"
     p.font.size = Pt(28)
     p.font.bold = True
 

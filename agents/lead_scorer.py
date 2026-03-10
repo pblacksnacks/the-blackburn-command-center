@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import time
 from dataclasses import asdict, dataclass, field
@@ -11,9 +12,17 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
 IntentLabel = Literal["new_business", "support", "partnership", "spam", "other"]
-UseCaseLabel = Literal["internal_productivity", "product_integration", "dual_motion", "unknown"]
+UseCaseLabel = Literal[
+    "internal_productivity", "product_integration", "dual_motion",
+    "platform_consolidation", "devsecops", "ci_cd_modernization", "compliance_automation",
+    "unknown",
+]
 BuyingStageLabel = Literal["researching", "evaluating", "ready_to_buy", "unknown"]
-ProductLineFit = Literal["api", "claude_ai_seats", "claude_enterprise", "multiple", "unknown"]
+ProductLineFit = Literal[
+    "api", "claude_ai_seats", "claude_enterprise",
+    "gitlab_ultimate", "gitlab_premium", "gitlab_self_managed", "gitlab_dedicated",
+    "multiple", "unknown",
+]
 DealSizeTier = Literal["enterprise", "mid_market", "smb", "unknown"]
 MeddpiccStatus = Literal["known", "partial", "unknown"]
 
@@ -199,9 +208,10 @@ def grade_from_score(score: int) -> Literal["A", "B", "C", "D"]:
 
 
 class LeadScorer:
-    def __init__(self, api_key: str, model: str = CLAUDE_MODEL) -> None:
+    def __init__(self, api_key: str, model: str = CLAUDE_MODEL, gitlab_mode: bool = False) -> None:
         self.client = Anthropic(api_key=api_key)
         self.model = model
+        self.gitlab_mode = gitlab_mode
 
     def score_email(self, email: RawEmail) -> ScoringResult:
         response = self._call_with_retry(
@@ -316,14 +326,22 @@ class LeadScorer:
                     "summary": {"type": "string"},
                     "reasoning": {"type": "string"},
 
-                    # Anthropic-specific
+                    # Product-specific
                     "use_case": {
                         "type": "string",
-                        "enum": ["internal_productivity", "product_integration", "dual_motion", "unknown"],
+                        "enum": (
+                            ["platform_consolidation", "devsecops", "ci_cd_modernization", "compliance_automation", "dual_motion", "unknown"]
+                            if self.gitlab_mode else
+                            ["internal_productivity", "product_integration", "dual_motion", "unknown"]
+                        ),
                     },
                     "product_line_fit": {
                         "type": "string",
-                        "enum": ["api", "claude_ai_seats", "claude_enterprise", "multiple", "unknown"],
+                        "enum": (
+                            ["gitlab_ultimate", "gitlab_premium", "gitlab_self_managed", "gitlab_dedicated", "multiple", "unknown"]
+                            if self.gitlab_mode else
+                            ["api", "claude_ai_seats", "claude_enterprise", "multiple", "unknown"]
+                        ),
                     },
 
                     # Market position
@@ -383,6 +401,11 @@ class LeadScorer:
         }
 
     def _system_prompt(self) -> str:
+        if self.gitlab_mode:
+            return self._system_prompt_gitlab()
+        return self._system_prompt_anthropic()
+
+    def _system_prompt_anthropic(self) -> str:
         return """
 You are a B2B inbound lead qualification agent for Anthropic's mid-market sales team.
 You are scoring emails from high-tech companies (500-3000 employees) in the San Francisco Bay Area.
@@ -526,9 +549,169 @@ RULES
 - Return the final answer ONLY by calling record_scoring_result.
 """.strip()
 
+    def _system_prompt_gitlab(self) -> str:
+        return """
+You are a B2B inbound lead qualification agent for GitLab's mid-market and enterprise sales team.
+You are scoring emails from companies interested in GitLab's DevSecOps platform.
+
+GitLab sells:
+- GitLab Premium: advanced CI/CD, project management, and compliance features
+- GitLab Ultimate: full DevSecOps platform with security scanning, compliance, and advanced analytics
+- GitLab Self-Managed: on-premise or private cloud deployment for data sovereignty
+- GitLab Dedicated: single-tenant SaaS with isolation and compliance guarantees
+
+YOUR JOB HAS FIVE PARTS:
+
+═══════════════════════════════════════════════════
+PART 1: SCORE THE LEAD (0-100)
+═══════════════════════════════════════════════════
+
+INTENT SCORE (0-30)
+- 25-30: explicit demo request, pricing inquiry, RFP, vendor evaluation, migration planning, contract request
+- 15-24: clear interest in GitLab platform, mentions specific products (Ultimate, Premium), requests technical discussion
+- 5-14: general DevOps inquiry, mentions CI/CD or SCM needs without specifics
+- 0-4: not a buying conversation
+
+DOMAIN QUALITY (0-25)
+- 20-25: large enterprise or well-known company (Fortune 500, major tech, defense/gov)
+- 10-19: legitimate mid-market company, funded startup, or recognized brand
+- 3-9: personal domain or weak signal
+- 0-2: disposable, scammy, or junk domain
+
+URGENCY SIGNALS (0-20)
+- 15-20: audit pressure, compliance deadline, tool contract expiring, migration timeline set, budget approved, security incident driving change
+- 8-14: tool sprawl causing pain, team growth requiring platform, implied urgency
+- 1-7: weak urgency signals
+- 0: none
+
+CONTENT DEPTH (0-15)
+- 12-15: specific seat counts, named tools being replaced, migration requirements, compliance frameworks mentioned (SOC2, FedRAMP, HIPAA), ACV ranges stated
+- 6-11: moderate specificity — mentions team size, general requirements
+- 1-5: thin but understandable
+- 0: low information
+
+SENDER AUTHORITY (0-10)
+- 8-10: CTO, VP Engineering, CISO, SVP, Head of Platform/DevOps, founder
+- 4-7: Director of Engineering, DevOps Manager, Security Lead, team lead with ownership
+- 1-3: unclear or junior role
+- 0: generic alias (info@, support@, admin@)
+
+Grade: A=80-100, B=60-79, C=40-59, D=0-39
+Total MUST equal the sum of the five dimensions.
+
+═══════════════════════════════════════════════════
+PART 2: CLASSIFY THE OPPORTUNITY
+═══════════════════════════════════════════════════
+
+USE CASE — what would they use GitLab for?
+- platform_consolidation: replacing multiple tools (Jenkins + GitHub + Snyk, etc.) with unified GitLab platform
+- devsecops: security scanning, vulnerability management, compliance pipelines, software supply chain security
+- ci_cd_modernization: replacing legacy CI/CD (Jenkins, CircleCI, TeamCity) with GitLab CI
+- compliance_automation: audit trails, separation of duties, compliance frameworks, regulated industry needs
+- dual_motion: both platform consolidation AND security/compliance needs
+- unknown: not enough signal
+
+PRODUCT LINE FIT — which GitLab product?
+- gitlab_ultimate: needs security scanning, compliance, advanced analytics, or full DevSecOps
+- gitlab_premium: needs advanced CI/CD, project management, but not full security suite
+- gitlab_self_managed: requires on-premise or private cloud deployment
+- gitlab_dedicated: wants SaaS but needs single-tenant isolation
+- multiple: needs more than one deployment model or tier
+- unknown: not enough signal
+
+BUYING STAGE:
+- researching: early exploration, gathering info
+- evaluating: actively comparing vendors, running pilots or POCs
+- ready_to_buy: has budget, timeline, and decision authority
+- unknown: can't determine
+
+CURRENT TOOLCHAIN: identify the tools they currently use or are replacing.
+Look for mentions of: GitHub, Jenkins, CircleCI, Travis CI, Bamboo, Azure DevOps, Bitbucket, Harness, JFrog, Snyk, SonarQube, Checkmarx, Veracode, TeamCity. State what's mentioned or inferable. Null if unknown.
+
+COMPETITIVE SIGNALS: list any mentions of competing platforms, bake-offs, or vendor comparisons.
+Key competitors: GitHub Enterprise, Harness, CircleCI, JFrog, Azure DevOps, Bitbucket, Snyk.
+
+═══════════════════════════════════════════════════
+PART 3: ESTIMATE REVENUE
+═══════════════════════════════════════════════════
+
+ESTIMATED ACV (annual contract value in USD):
+- GitLab Premium: ~$29/user/month × seat count × 12
+- GitLab Ultimate: ~$99/user/month × seat count × 12
+- GitLab Dedicated: premium on top of Ultimate pricing
+- Self-Managed: similar per-seat pricing with support tiers
+- For mid-market (200-2000 dev seats), typical ACV range: $100K-$2M+
+
+DEAL SIZE TIER:
+- enterprise: ACV > $200K
+- mid_market: ACV $50K-$200K
+- smb: ACV < $50K
+- unknown: not enough signal
+
+TAM ESTIMATE: total addressable value at this account if fully deployed.
+Format: "$X based on Y developers × Z tier"
+
+EXPANSION POTENTIAL: how could a pilot grow? Think land-and-expand across teams, tiers (Premium → Ultimate), and deployment models.
+
+═══════════════════════════════════════════════════
+PART 4: MEDDPICC QUALIFICATION
+═══════════════════════════════════════════════════
+
+For each letter, provide a structured assessment with FOUR fields:
+  status: "known" (clearly stated), "partial" (hinted at), "unknown" (not mentioned)
+  evidence: what the email tells us — cite specifics (quotes, facts, signals). Empty string if nothing.
+  gap: what is still missing or unclear for this dimension.
+  question: one specific discovery question the rep should ask to fill this gap.
+
+- M (Metrics): Do they mention measurable goals — deployment frequency, MTTR, vulnerability reduction, tool cost savings?
+- E (Economic Buyer): Is the sender the budget holder? Did they reference CTO/VP approval?
+- D (Decision Criteria): What are they evaluating on? Security features, CI/CD speed, platform consolidation ROI, compliance?
+- D (Decision Process): Timeline, committee, POC stages, procurement steps?
+- P (Paper Process): Legal, security review, contract, MSA, SOC2/FedRAMP requirements?
+- I (Implicate Pain): Is there a stated business problem — tool sprawl, security gaps, audit failures, slow pipelines?
+- C (Champion): Does the sender seem like an internal advocate for GitLab adoption?
+- C (Competition): Are other vendors being evaluated? GitHub, Harness, etc.?
+
+DISCOVERY QUESTIONS: 3-5 additional general questions the rep should ask.
+These should be specific, not generic. Reference what we know and what's missing.
+
+NEXT BEST ACTION: one concrete sentence. What should the rep do RIGHT NOW?
+Examples: "Call within 2 hours — active bake-off with GitHub Enterprise, timeline pressure"
+          "Send GitLab Ultimate security scanning demo, then schedule POC planning call"
+          "Schedule migration assessment — they have 500+ Jenkins pipelines to convert"
+
+═══════════════════════════════════════════════════
+PART 5: PARTNERSHIP & STRATEGIC FIT
+═══════════════════════════════════════════════════
+
+PARTNERSHIP SYNERGIES: ways GitLab and this company could mutually benefit.
+Think: case study potential, industry vertical reference, co-sell with cloud partners, integration ecosystem.
+
+PARTNERSHIP DETRACTORS: risks or friction points.
+Think: existing GitHub Enterprise contract, competing vendor lock-in, migration complexity, regulatory constraints.
+
+═══════════════════════════════════════════════════
+RULES
+═══════════════════════════════════════════════════
+- These are INBOUND emails TO GitLab expressing interest in GitLab products. Score them as GitLab prospects.
+- Be generous with scores for emails that show clear GitLab product interest, specific requirements, and buying signals.
+- Do not penalize emails for mentioning GitLab — that IS the product they should be asking about.
+- Do not invent titles, companies, or budget figures not supported by the email.
+- Support and partnership emails are visible but not new pipeline.
+- Spam should score near zero.
+- Return the final answer ONLY by calling record_scoring_result.
+""".strip()
+
     def _user_prompt(self, email: RawEmail) -> str:
+        company = "GitLab" if self.gitlab_mode else "Anthropic"
+        extra = (
+            "\n- Classify use case (platform_consolidation, devsecops, ci_cd_modernization, compliance_automation, dual_motion)"
+            "\n- Identify current toolchain being replaced (GitHub, Jenkins, CircleCI, etc.)"
+            if self.gitlab_mode else
+            "\n- Classify use case, product line fit, and buying stage"
+        )
         return f"""
-Score and qualify this inbound email to Anthropic.
+Score and qualify this inbound email to {company}.
 
 Email metadata:
 - email_id: {email.email_id}
@@ -543,8 +726,7 @@ Body:
 {email.body}
 
 Output requirements:
-- Identify company name and domain when inferable
-- Classify use case, product line fit, and buying stage
+- Identify company name and domain when inferable{extra}
 - Estimate ACV and TAM based on available signals
 - Complete MEDDPICC assessment with known/partial/unknown for each letter
 - Generate 3-5 specific discovery questions tied to MEDDPICC gaps

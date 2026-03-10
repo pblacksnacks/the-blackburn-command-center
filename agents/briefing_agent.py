@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from pathlib import Path
 from typing import Literal
@@ -276,8 +277,12 @@ class BriefingAgent:
         return BriefingPayloadModel.model_validate(dict(tool_block.input))
 
     def _system_prompt(self) -> str:
-        return """
-You are writing an executive daily sales briefing for Anthropic's mid-market sales team
+        if os.environ.get("GITLAB_MODE", "false").lower() == "true":
+            team_desc = "GitLab's enterprise sales team"
+        else:
+            team_desc = "Anthropic's mid-market sales team"
+        return f"""
+You are writing an executive daily sales briefing for {team_desc}
 targeting high-tech companies (500-3000 employees) in San Francisco.
 
 Your job:

@@ -32,7 +32,7 @@ export default function ResearchPage({ refreshKey }: { refreshKey: number }) {
       {/* Tab buttons */}
       <div
         className="flex gap-1 mb-4 rounded-lg p-1 w-fit"
-        style={{ background: 'rgba(245, 240, 232, 0.05)' }}
+        style={{ background: 'color-mix(in srgb, var(--text-primary) 5%, transparent)' }}
       >
         <button
           className="px-4 py-1.5 text-sm rounded-md font-medium transition-colors"
@@ -93,7 +93,7 @@ export default function ResearchPage({ refreshKey }: { refreshKey: number }) {
                     {c.funding_stage && (
                       <div
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-                        style={{ background: 'rgba(212, 165, 116, 0.12)', color: 'var(--accent)' }}
+                        style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent)' }}
                       >
                         {formatLabel(c.funding_stage)}
                       </div>

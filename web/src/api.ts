@@ -16,6 +16,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return res.json();
 }
 
+export interface AppConfig {
+  mode: 'anthropic' | 'gitlab';
+}
+
+export const fetchConfig = () => get<AppConfig>('/config');
+
 export interface MeddpiccDimension {
   status: 'known' | 'partial' | 'unknown';
   evidence: string;

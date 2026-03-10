@@ -231,7 +231,7 @@ function ExpandedDetail({
         )}
 
         {hasQuestion && (
-          <div className="rounded border p-3" style={{ background: 'rgba(212, 165, 116, 0.06)', borderColor: 'rgba(212, 165, 116, 0.2)' }}>
+          <div className="rounded border p-3" style={{ background: 'color-mix(in srgb, var(--accent) 6%, transparent)', borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }}>
             <div className="flex items-center gap-1.5 mb-1">
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
               <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--accent)' }}>Discovery Question</span>
