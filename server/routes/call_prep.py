@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import tempfile
 from datetime import date, timedelta
@@ -88,6 +89,12 @@ class CallPrepExportRequest(BaseModel):
     expand_strategy: str = ""
     proposed_next_step: str = ""
     do_not_say: list[str] = []
+    slide_title: str = ""
+    slide_challenges: list[dict] = []
+    slide_advantages: list[dict] = []
+    slide_phase1_label: str = ""
+    slide_phase2_label: str = ""
+    slide_phase3_label: str = ""
 
     @field_validator("suggested_agenda", "discovery_questions", "do_not_say", mode="before")
     @classmethod
@@ -284,6 +291,8 @@ CALL_PREP_TOOL = {
             "current_stack", "suggested_agenda", "discovery_questions",
             "objection_prep", "competitive_positioning", "land_strategy",
             "expand_strategy", "proposed_next_step", "do_not_say",
+            "slide_title", "slide_challenges", "slide_advantages",
+            "slide_phase1_label", "slide_phase2_label", "slide_phase3_label",
         ],
         "properties": {
             "contact_summary": {
@@ -344,6 +353,46 @@ CALL_PREP_TOOL = {
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Things to avoid mentioning — e.g. don't trash their existing integration if they just shipped it, don't mention features that aren't GA yet.",
+            },
+            "slide_title": {
+                "type": "string",
+                "description": "Short title for the customer deck. Format: 'Partnering with {company}' — no 'on AI' or product-specific suffix. Just the company partnership framing.",
+            },
+            "slide_challenges": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "headline": {"type": "string", "description": "Max 6 words. Bold challenge statement."},
+                        "subtitle": {"type": "string", "description": "Max 12 words. One-line supporting detail."},
+                    },
+                    "required": ["headline", "subtitle"],
+                },
+                "description": "Exactly 3 custom challenges for the presentation. Each has a short headline (max 6 words) and a one-line subtitle (max 12 words). These must be specific to the customer, not generic.",
+            },
+            "slide_advantages": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "headline": {"type": "string", "description": "Max 6 words. Bold value proposition."},
+                        "subtitle": {"type": "string", "description": "Max 12 words. One-line supporting detail."},
+                    },
+                    "required": ["headline", "subtitle"],
+                },
+                "description": "Exactly 3 competitive advantages for the presentation. Each has a short headline (max 6 words) and subtitle (max 12 words). Specific to this customer's situation.",
+            },
+            "slide_phase1_label": {
+                "type": "string",
+                "description": "Max 5 words. Short label for the 30-day pilot phase. Example: 'Technical Proof-of-Concept' or '75-Engineer Pilot Program'",
+            },
+            "slide_phase2_label": {
+                "type": "string",
+                "description": "Max 6 words. Short label for the 90-day expansion phase. Be specific to the customer's situation. Example: 'Scale to All Engineering Teams' or 'Enterprise-Wide Security Rollout'",
+            },
+            "slide_phase3_label": {
+                "type": "string",
+                "description": "Max 6 words. Short label for the 12-month full deployment. Be specific. Example: 'Full 793-Employee Deployment' or 'Organization-Wide Platform Standard'",
             },
         },
     },
@@ -657,6 +706,8 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
         ACCENT = RGBColor(252, 109, 38)        # #FC6D26
         MUTED = RGBColor(162, 161, 166)
         WHITE = RGBColor(255, 255, 255)
+        CARD_TEXT = RGBColor(68, 64, 60)        # subtitle text for white cards
+        CARD_DARK = RGBColor(26, 26, 26)       # headline text for white cards
     else:
         BG_CREAM = RGBColor(245, 240, 232)
         TEXT_DARK = RGBColor(26, 26, 26)
@@ -664,6 +715,8 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
         ACCENT = RGBColor(212, 165, 116)
         MUTED = RGBColor(140, 135, 125)
         WHITE = RGBColor(255, 255, 255)
+        CARD_TEXT = TEXT_BODY
+        CARD_DARK = TEXT_DARK
     FONT = "Arial"
 
     company = lead.get("company_name") or "Your Company"
@@ -733,8 +786,8 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     _bg(s1)
     _bar(s1, 0, 0, 13.333, 0.08)
     _t(s1, 1.0, 0.6, 6, 0.5, _brand_name, size=14, color=ACCENT, bold=True)
-    _t(s1, 1.0, 2.0, 10, 1.5,
-       f"Partnering with {company}\non AI", size=40, bold=True)
+    title_text = data.slide_title.strip() if data.slide_title.strip() else f"Partnering with {company}"
+    _t(s1, 1.0, 2.0, 10, 1.5, title_text, size=40, bold=True)
     _bar(s1, 1.0, 4.0, 1.5, 0.06)
     _t(s1, 1.0, 4.4, 8, 0.5,
        f"Prepared for {contact}  |  {today_str}", size=16, color=MUTED)
@@ -748,29 +801,70 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
         f"This is a conversation, not a pitch."
     ))
 
+    # ── Text extraction helpers ──
+
+    def _short_label(text: str, cap: int = 40) -> str:
+        """Extract a clean short label from an agenda item or sentence."""
+        s = text.strip()
+        # Strip bracket/quote artifacts
+        s = s.strip('[]"\'')
+        # Strip parenthetical time references like "(3 mins)" or "(8 min)"
+        s = re.sub(r"\s*\(\d+\s*min(?:ute)?s?\)", "", s, flags=re.IGNORECASE)
+        # Strip leading numbers, bullets, dots (e.g. "1. ", "- ", "• ")
+        s = re.sub(r"^[\d.\-•*)\s]+", "", s)
+        # Take text before colon or " - " delimiter
+        for delim in [":", " - ", " -- "]:
+            if delim in s:
+                s = s[: s.index(delim)]
+                break
+        s = s.strip()
+        if s:
+            s = s[0].upper() + s[1:]
+        # Hard cap: don't cut mid-word
+        if len(s) > cap:
+            truncated = s[:cap]
+            last_space = truncated.rfind(" ")
+            s = truncated[:last_space] if last_space > 10 else truncated
+        return s if s else "Discussion topic"
+
+    def _headline_from_sentence(sentence: str, cap: int = 45) -> str:
+        """Extract headline: text before first comma, 'that', or 'which'."""
+        s = sentence.strip().rstrip(".")
+        for pat in [", ", " that ", " which "]:
+            if pat in s:
+                s = s[: s.index(pat)]
+                break
+        s = s.strip()
+        if s:
+            s = s[0].upper() + s[1:]
+        return s[:cap] if s else "Key consideration"
+
+    def _split_sentences(text: str) -> list[str]:
+        """Split text into sentences, filtering out empties."""
+        parts = re.split(r"(?<=[.!?])\s+", text.strip())
+        return [p.strip() for p in parts if p.strip() and len(p.strip()) > 5]
+
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 2 — Agenda (hardcoded short labels)
+    # SLIDE 2 — Agenda (derived from suggested_agenda data)
     # ════════════════════════════════════════════════════════════════
     s2 = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(s2)
     _header(s2, "Today's Agenda")
 
-    agenda_labels = [
-        "Your AI Landscape Today",
-        "Key Challenges & Requirements",
-        "How GitLab Can Help" if _is_gitlab_mode() else "How Claude Can Help",
-        "Pilot Approach & Next Steps",
-    ]
-    y = 2.6
-    for label in agenda_labels:
-        _card(s2, 1.0, y, 11.0, 0.9)
-        _t(s2, 1.5, y + 0.22, 10.0, 0.5, label, size=18, color=TEXT_BODY)
-        y += 1.05
-
     agenda_items = data.suggested_agenda[:5]
     time_allocs = ["3 min", "5 min", "7 min", "5 min", "5 min"]
     if len(agenda_items) == 4:
         time_allocs = ["3 min", "7 min", "8 min", "7 min"]
+
+    y = 2.5
+    for i, item in enumerate(agenda_items):
+        t = time_allocs[i] if i < len(time_allocs) else "5 min"
+        label = _short_label(item)
+        _card(s2, 1.0, y, 11.0, 0.65)
+        _t(s2, 1.5, y + 0.15, 1.2, 0.4, t, size=14, bold=True, color=ACCENT)
+        _t(s2, 2.8, y + 0.15, 8.7, 0.4, label, size=16, color=CARD_DARK)
+        y += 0.78
+
     notes_agenda = "AGENDA -- FULL DETAIL & TIME ALLOCATIONS\n\n"
     for i, item in enumerate(agenda_items):
         t = time_allocs[i] if i < len(time_allocs) else "5 min"
@@ -784,30 +878,39 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     _n(s2, notes_agenda)
 
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 3 — Understanding Your AI Landscape (hardcoded cards)
+    # SLIDE 3 — Understanding Your Landscape (from slide_challenges or fallback)
     # ════════════════════════════════════════════════════════════════
     s3 = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(s3)
-    _header(s3, "Understanding Your AI Landscape")
+    _header(s3, "Understanding Your Landscape")
 
-    challenges = [
-        ("Accuracy at Stake",
-         "Contract errors putting enterprise clients at risk"),
-        ("Governance Gap",
-         f"{emp_count} employees, no centralized AI oversight"),
-        ("Legal-Grade Reliability",
-         "Fortune 500 contracts demand zero tolerance"),
-    ]
+    # Prefer Claude-generated slide_challenges; fall back to extraction
+    if data.slide_challenges and len(data.slide_challenges) >= 3:
+        challenges: list[tuple[str, str]] = [
+            (c.get("headline", ""), c.get("subtitle", ""))
+            for c in data.slide_challenges[:3]
+        ]
+    else:
+        why_sentences = _split_sentences(data.why_theyre_here)
+        fallback = "Exploring new capabilities for your team"
+        challenges = []
+        for sent in why_sentences[:3]:
+            headline = _headline_from_sentence(sent, cap=45)
+            subtitle = sent[:85]
+            challenges.append((headline, subtitle))
+        while len(challenges) < 3:
+            challenges.append(("Exploring New Capabilities", fallback))
+
     card_xs = [1.0, 4.8, 8.6]
     for i, (headline, subtitle) in enumerate(challenges):
-        _card(s3, card_xs[i], 2.9, 3.5, 3.2)
+        _card(s3, card_xs[i], 2.9, 3.5, 4.0)
         _bar(s3, card_xs[i], 2.9, 3.5, 0.06)
         _t(s3, card_xs[i] + 0.3, 3.3, 2.9, 0.5,
            f"0{i + 1}", size=32, bold=True, color=ACCENT)
-        _t(s3, card_xs[i] + 0.3, 4.0, 2.9, 0.6,
-           headline, size=22, bold=True)
-        _t(s3, card_xs[i] + 0.3, 4.7, 2.9, 1.2,
-           subtitle, size=14, color=TEXT_BODY)
+        _t(s3, card_xs[i] + 0.3, 4.0, 2.9, 0.8,
+           headline, size=18, bold=True, color=CARD_DARK)
+        _t(s3, card_xs[i] + 0.3, 5.2, 2.9, 1.2,
+           subtitle, size=14, color=CARD_TEXT)
 
     notes_landscape = (
         f"DISCOVERY SECTION -- FULL DETAIL\n\n"
@@ -828,28 +931,51 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     _n(s3, notes_landscape)
 
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 4 — Why Claude for {company} (hardcoded value props)
+    # SLIDE 4 — Why Us for {company} (from slide_advantages or fallback)
     # ════════════════════════════════════════════════════════════════
     s4 = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(s4)
-    _header(s4, f"Why {'GitLab' if _is_gitlab_mode() else 'Claude'} for {company}")
+    if _is_gitlab_mode():
+        _s4_title = f"Why GitLab for {company}"
+    else:
+        _s4_title = f"Why Claude for {company}"
+    _header(s4, _s4_title)
 
-    value_props = [
-        ("Superior Legal Reasoning",
-         "Constitutional AI built for nuanced interpretation"),
-        ("Enterprise-Ready from Day One",
-         "SSO, security controls, and compliance built in"),
-        ("Seamless Migration Path",
-         "API-compatible with dedicated migration support"),
-    ]
+    # Prefer Claude-generated slide_advantages; fall back to extraction
+    if data.slide_advantages and len(data.slide_advantages) >= 3:
+        value_props: list[tuple[str, str]] = [
+            (a.get("headline", ""), a.get("subtitle", ""))
+            for a in data.slide_advantages[:3]
+        ]
+    else:
+        cp_sentences = _split_sentences(data.competitive_positioning)
+        value_props = []
+        if len(cp_sentences) >= 3:
+            chunk_size = max(1, len(cp_sentences) // 3)
+            for block_start in range(0, min(len(cp_sentences), chunk_size * 3), chunk_size):
+                sent = cp_sentences[block_start]
+                headline = _headline_from_sentence(sent, cap=50)
+                remainder = sent[len(headline):].lstrip(" ,;:-").strip()
+                subtitle = (remainder[:85] if remainder else sent[:85])
+                value_props.append((headline, subtitle))
+        else:
+            for sent in cp_sentences:
+                headline = _headline_from_sentence(sent, cap=50)
+                remainder = sent[len(headline):].lstrip(" ,;:-").strip()
+                subtitle = (remainder[:85] if remainder else sent[:85])
+                value_props.append((headline, subtitle))
+        fallback_vp = "Purpose-built solution for your team"
+        while len(value_props) < 3:
+            value_props.append(("Tailored Solution", fallback_vp))
+
     y = 2.9
-    for headline, subtitle in value_props:
+    for headline, subtitle in value_props[:3]:
         _card(s4, 1.0, y, 11.0, 1.35)
         _bar(s4, 1.0, y, 0.08, 1.35)
         _t(s4, 1.5, y + 0.2, 10.0, 0.6,
-           headline, size=22, bold=True)
+           headline, size=22, bold=True, color=CARD_DARK)
         _t(s4, 1.5, y + 0.75, 10.0, 0.5,
-           subtitle, size=14, color=TEXT_BODY)
+           subtitle, size=14, color=CARD_TEXT)
         y += 1.55
 
     notes_why = (
@@ -863,22 +989,39 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     notes_why += (
         f"\nKey: Connect advantages to THEIR specific pain points. "
         f"Reference what they said in the discovery section. "
-        f"'Based on what you shared about X, here\\'s why {'GitLab' if _is_gitlab_mode() else 'Claude'} is a good fit...'\n\n"
-        f"Do NOT lead with features. Lead with their pain, then bridge to how {'GitLab' if _is_gitlab_mode() else 'Claude'} solves it."
+        f"'Based on what you shared about X, here's why we're a good fit...'\n\n"
+        f"Do NOT lead with features. Lead with their pain, then bridge to how we solve it."
     )
     _n(s4, notes_why)
 
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 5 — Proposed Pilot Program (no dollar amounts on slide)
+    # SLIDE 5 — Proposed Pilot Program (from land_strategy data)
     # ════════════════════════════════════════════════════════════════
     s5 = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(s5)
     _header(s5, "Proposed Pilot Program")
 
+    # Phase 1 description: prefer Claude-generated label, fall back to extraction
+    if data.slide_phase1_label and data.slide_phase1_label.strip():
+        phase1_desc = data.slide_phase1_label.strip()
+    else:
+        land_sentences = _split_sentences(data.land_strategy)
+        phase1_desc = "Technical Proof-of-Concept"
+        if land_sentences:
+            first = land_sentences[0]
+            for delim in [", ", ": ", " - "]:
+                if delim in first:
+                    first = first[: first.index(delim)]
+                    break
+            phase1_desc = first.strip()[:45] or phase1_desc
+
+    phase2_desc = data.slide_phase2_label.strip() if data.slide_phase2_label and data.slide_phase2_label.strip() else "Expand to key teams"
+    phase3_desc = data.slide_phase3_label.strip() if data.slide_phase3_label and data.slide_phase3_label.strip() else "Full organization rollout"
+
     phases = [
-        ("PHASE 1", "30 Days", "Technical Proof-of-Concept"),
-        ("PHASE 2", "90 Days", "Expand to Key Teams"),
-        ("PHASE 3", "12 Months", "Full Organization Rollout"),
+        ("PHASE 1", "30 Days", phase1_desc),
+        ("PHASE 2", "90 Days", phase2_desc),
+        ("PHASE 3", "12 Months", phase3_desc),
     ]
 
     # Connector line
@@ -890,7 +1033,7 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     conn.line.fill.background()
 
     phase_xs = [1.2, 5.0, 8.8]
-    for i, (label, time, desc) in enumerate(phases):
+    for i, (label, time_label, desc) in enumerate(phases):
         circle = s5.shapes.add_shape(
             MSO_AUTO_SHAPE_TYPE.OVAL,
             Inches(phase_xs[i] + 1.3), Inches(3.4), Inches(0.7), Inches(0.7))
@@ -905,9 +1048,9 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
 
         _card(s5, phase_xs[i], 4.4, 3.6, 2.0)
         _t(s5, phase_xs[i] + 0.25, 4.55, 3.1, 0.4,
-           f"{label}  --  {time}", size=14, bold=True, color=ACCENT)
+           f"{label}  --  {time_label}", size=14, bold=True, color=ACCENT)
         _t(s5, phase_xs[i] + 0.25, 5.1, 3.1, 0.7,
-           desc, size=16, color=TEXT_BODY)
+           desc, size=16, color=CARD_TEXT)
 
     notes_pilot = (
         f"FULL DEAL STRATEGY\n\n"
@@ -925,7 +1068,7 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     _n(s5, notes_pilot)
 
     # ════════════════════════════════════════════════════════════════
-    # SLIDE 6 — Next Steps (hardcoded short labels)
+    # SLIDE 6 — Next Steps (from proposed_next_step data)
     # ════════════════════════════════════════════════════════════════
     s6 = prs.slides.add_slide(prs.slide_layouts[6])
     _bg(s6)
@@ -935,23 +1078,34 @@ def _build_customer_deck(lead: dict, data: CallPrepExportRequest) -> Path:
     d2 = (date.today() + timedelta(days=7)).strftime("%b %d")
     d3 = (date.today() + timedelta(days=14)).strftime("%b %d")
 
+    # Action item 1: first clause of proposed_next_step
+    next_sentences = _split_sentences(data.proposed_next_step)
+    action1 = "Follow-up materials"
+    if next_sentences:
+        first = next_sentences[0]
+        for delim in [", ", ": ", " - "]:
+            if delim in first:
+                first = first[: first.index(delim)]
+                break
+        action1 = first.strip()[:50] or action1
+
     actions = [
-        ("Board presentation materials", "Parker / GitLab" if _is_gitlab_mode() else "Parker / Anthropic", d1),
+        (action1, f"Parker / {_brand_name.capitalize()}", d1),
         ("Technical deep-dive session", contact, d2),
         ("Pilot kickoff", "Joint", d3),
     ]
 
     # Table header
     _card(s6, 1.0, 2.8, 11.0, 0.65, fill=RGBColor(235, 230, 222))
-    _t(s6, 1.4, 2.9, 6, 0.45, "Action Item", size=14, bold=True, color=MUTED)
-    _t(s6, 8.0, 2.9, 2, 0.45, "Owner", size=14, bold=True, color=MUTED)
-    _t(s6, 10.5, 2.9, 2, 0.45, "Target Date", size=14, bold=True, color=MUTED)
+    _t(s6, 1.4, 2.9, 6, 0.45, "Action Item", size=14, bold=True, color=CARD_TEXT)
+    _t(s6, 8.0, 2.9, 2, 0.45, "Owner", size=14, bold=True, color=CARD_TEXT)
+    _t(s6, 10.5, 2.9, 2, 0.45, "Target Date", size=14, bold=True, color=CARD_TEXT)
 
     y = 3.6
     for action, owner, dt in actions:
         _card(s6, 1.0, y, 11.0, 0.85)
-        _t(s6, 1.4, y + 0.2, 6.2, 0.5, action, size=16, color=TEXT_BODY)
-        _t(s6, 8.0, y + 0.2, 2.2, 0.5, owner, size=14, color=TEXT_BODY)
+        _t(s6, 1.4, y + 0.2, 6.2, 0.5, action, size=16, color=CARD_DARK)
+        _t(s6, 8.0, y + 0.2, 2.2, 0.5, owner, size=14, color=CARD_TEXT)
         _t(s6, 10.5, y + 0.2, 2, 0.5, dt, size=14, bold=True, color=ACCENT)
         y += 1.0
 

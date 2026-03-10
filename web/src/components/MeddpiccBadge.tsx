@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import type { MeddpiccDimension } from '../api';
 
 /* ── status → visual mapping ─────────────────────────────────── */
@@ -82,23 +82,19 @@ function DimensionBadge({
   onToggle: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const [tooltipSide, setTooltipSide] = useState<'top' | 'bottom'>('top');
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>();
   const tooltipRef = useRef<HTMLDivElement>(null);
   const badgeRef = useRef<HTMLDivElement>(null);
-  const [tooltipSide, setTooltipSide] = useState<'top' | 'bottom'>('top');
-
   const status = dimension.status || 'unknown';
   const preview = hoverPreview(dimension);
 
-  useEffect(() => {
-    if (hovered && badgeRef.current) {
+  const showHover = () => {
+    clearTimeout(hoverTimer.current);
+    if (badgeRef.current) {
       const rect = badgeRef.current.getBoundingClientRect();
       setTooltipSide(rect.top < 120 ? 'bottom' : 'top');
     }
-  }, [hovered]);
-
-  const showHover = () => {
-    clearTimeout(hoverTimer.current);
     hoverTimer.current = setTimeout(() => setHovered(true), 200);
   };
   const hideHover = () => {

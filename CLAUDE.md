@@ -13,8 +13,13 @@ python main.py intake --demo
 python main.py research --demo
 python main.py briefing --demo
 
-# Full-stack dev server (FastAPI on :8000 + Vite on :5173, opens browser)
+# Anthropic instance (FastAPI on :8000 + Vite on :5173)
 ./run-dev.sh
+
+# GitLab instance (FastAPI on :8001 + Vite on :5174, separate DB)
+./run-gitlab.sh
+# Initialize GitLab demo data first:
+./run-gitlab.sh init
 
 # Tests (mock API calls — no real Claude usage)
 pytest tests/
@@ -22,19 +27,24 @@ pytest tests/test_intake_agent.py  # single file
 
 # Frontend lint
 cd web && npm run lint
+
+# Backfill MEDDPICC scores for existing leads
+python scripts/backfill_meddpicc.py --write
 ```
 
 **Setup:** Create `.env` with `ANTHROPIC_API_KEY=...` before running anything.
 
 ## Architecture
 
-Three-agent pipeline backed by a full-stack web dashboard:
+Three-agent pipeline backed by a full-stack web dashboard with dual-mode branding (Anthropic / GitLab):
 
 ```
 Gmail Inbox → Intake Agent → SQLite DB → Research Agent → Briefing Agent
                                  ↕
                          FastAPI (server/) ← React/Vite (web/)
 ```
+
+**Dual Mode:** Set `GITLAB_MODE=true` to switch all user-facing surfaces to GitLab branding (purple/orange theme, GitLab product names, GitLab-specific slide decks). The `/api/config` endpoint exposes the current mode. The frontend reads this on load and sets `[data-theme="gitlab"]` on `<html>`.
 
 **Agents** (`agents/`): All agents are standalone classes; `main.py` wires them together. They use the Anthropic SDK with tool use for structured output.
 
@@ -43,15 +53,25 @@ Gmail Inbox → Intake Agent → SQLite DB → Research Agent → Briefing Agent
 | Intake | `agents/intake_agent.py` | Classifies intent, scores 1–100, extracts MEDDPICC |
 | Research | `agents/research_agent.py` | Web search → company enrichment |
 | Briefing | `agents/briefing_agent.py` | Daily `.md` report + `.pptx` deck |
+| LinkedIn | `agents/linkedin_agent.py` | Web search → contact LinkedIn profile enrichment |
 
 **Supporting modules:**
 - `agents/lead_scorer.py` — 100-point scoring rubric (see below); contains `RawEmail` and `ScoringResult` Pydantic models
 - `agents/report_formatter.py` — Markdown + python-pptx output
-- `src/db.py` — SQLite CRUD helpers shared by all agents and the API
+- `server/db.py` — SQLite CRUD helpers shared by all agents and the API
 
-**Backend** (`server/`): FastAPI app. Routes: `/api/leads`, `/api/research`, `/api/briefings`, `/api/pipeline`. The pipeline route runs agents in a background thread and polls via job ID.
+**Backend** (`server/`): FastAPI app. Key routes:
+- `/api/leads`, `/api/leads/{email}` — Lead CRUD and detail
+- `/api/leads/{email}/call-prep` — AI-generated discovery call brief (Claude tool use)
+- `/api/leads/{email}/call-prep-pdf`, `/api/leads/{email}/call-prep-pptx` — Export call prep as PDF/PPTX
+- `/api/leads/{email}/draft-email` — AI-generated personalized outreach email
+- `/api/research` — Company research data
+- `/api/linkedin`, `/api/linkedin/search` — LinkedIn profile enrichment
+- `/api/briefings` — Daily briefing reports
+- `/api/pipeline/run`, `/api/pipeline/status/{id}` — Pipeline execution (background thread + polling)
+- `/api/config` — Returns `{"mode": "anthropic" | "gitlab"}`
 
-**Frontend** (`web/`): React 19 + Vite + Tailwind CSS. Pages: Dashboard, LeadDetail, Research, Briefings. Uses `web/src/api.ts` for all backend calls. Vite proxies `/api/*` to `:8000`.
+**Frontend** (`web/`): React 19 + Vite + Tailwind CSS. Pages: Dashboard, LeadDetail, Research, Briefings. Uses `web/src/api.ts` for all backend calls. Vite proxies `/api/*` to the backend port. Theme-aware via CSS custom properties and `ModeContext`.
 
 ## Scoring Rubric (100 pts)
 
@@ -69,13 +89,8 @@ Grades: A = 80–100, B = 60–79, C = 40–59, D = 0–39
 
 - Python 3.11+, type hints everywhere
 - All agent outputs are structured Pydantic dicts, not raw strings
-- SQLite for local dev (`triage.db`); schema (`schema.sql`) is Postgres-compatible
-- Demo mode uses hardcoded emails in `main.py` (`DEMO_EMAILS` list); `--demo` also clears the DB before each full run
+- SQLite for local dev (`triage.db` for Anthropic, `triage_gitlab.db` for GitLab); schema (`schema.sql`) is Postgres-compatible
+- Demo data: `demo_data/anthropic.json` and `demo_data/gitlab.json`; `--demo` clears the DB before each full run
 - Tests mock the Claude API — no real API calls in `pytest`
 - `reports/` and `data/` are gitignored; they're created at runtime
-
-## MCP Servers (live mode)
-
-- `gws` — Gmail read access (Intake Agent, not yet wired)
-- `sqlite` — Database at `data/triage.db`
-- `notebooklm-mcp` — Research notebooks (Research Agent, optional)
+- PPTX decks use `fpdf2` for PDF and `python-pptx` for PowerPoint generation

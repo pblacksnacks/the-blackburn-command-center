@@ -271,8 +271,6 @@ def _raise_on_web_tool_error(response: Any) -> None:
 
 
 # Retry wrapper for rate limits
-import functools
-
 _orig_search_one = LinkedInSearchAgent.search_one
 
 

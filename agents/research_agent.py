@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from anthropic import Anthropic
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
 
@@ -337,7 +337,6 @@ def _raise_on_web_tool_error(response) -> None:
 
 
 # Monkey-patch retry into ResearchAgent
-import functools
 _orig_research_one = ResearchAgent.research_one
 
 def _research_one_with_retry(self, company_name, domain=None, lead_grade="C", max_retries=3):

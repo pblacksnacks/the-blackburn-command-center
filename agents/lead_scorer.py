@@ -4,11 +4,11 @@ import json
 import os
 import random
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from anthropic import Anthropic
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
 IntentLabel = Literal["new_business", "support", "partnership", "spam", "other"]

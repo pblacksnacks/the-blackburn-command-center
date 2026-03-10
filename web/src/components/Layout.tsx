@@ -8,7 +8,7 @@ const nav = [
   { to: '/briefings', label: 'Briefings', icon: FileText },
 ];
 
-export default function Layout({ children, onPipelineComplete }: { children: React.ReactNode; onPipelineComplete?: () => void }) {
+export default function Layout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const mode = useMode();
   const LogoIcon = mode === 'gitlab' ? GitBranch : Radar;

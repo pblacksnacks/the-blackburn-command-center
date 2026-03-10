@@ -1,5 +1,7 @@
 anthropic>=0.84.0
 fastapi>=0.115.0
+fpdf2>=2.8.3
+httpx>=0.28.0
 pydantic>=2.12.5
 python-dotenv>=1.2.2
 python-pptx>=1.0.2

@@ -7,7 +7,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agents.intake_agent import IntakeAgent, SqliteLeadStore
-from agents.lead_scorer import LeadScorer, RawEmail, ScoringResult, MeddpiccScore
+from agents.lead_scorer import RawEmail, ScoringResult, MeddpiccScore
 
 
 class FakeEmailSource:

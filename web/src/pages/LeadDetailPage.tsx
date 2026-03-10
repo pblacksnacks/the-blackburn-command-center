@@ -165,6 +165,27 @@ class CallPrepErrorBoundary extends Component<
   }
 }
 
+const CallPrepLoadingSkeleton = () => (
+  <div className="space-y-6 p-6">
+    <div className="flex items-center gap-3 mb-6">
+      <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--accent)' }} />
+      <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+        Generating call prep brief with Claude...
+      </span>
+    </div>
+    {Array.from({ length: 6 }).map((_, i) => (
+      <div key={i} className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <div className="h-4 rounded w-40 mb-3" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }} />
+        <div className="space-y-2">
+          <div className="h-3 rounded w-full animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: `${i * 0.1}s` }} />
+          <div className="h-3 rounded w-4/5 animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: `${i * 0.1 + 0.05}s` }} />
+          <div className="h-3 rounded w-3/5 animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: `${i * 0.1 + 0.1}s` }} />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 /* ── Call Prep Modal ──────────────────────────────────────────── */
 
 function CallPrepModal({
@@ -263,27 +284,6 @@ function CallPrepModal({
     </div>
   );
 
-  const LoadingSkeleton = () => (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--accent)' }} />
-        <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-          Generating call prep brief with Claude...
-        </span>
-      </div>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="rounded-lg p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <div className="h-4 rounded w-40 mb-3" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }} />
-          <div className="space-y-2">
-            <div className="h-3 rounded w-full animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: `${i * 0.1}s` }} />
-            <div className="h-3 rounded w-4/5 animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: `${i * 0.1 + 0.05}s` }} />
-            <div className="h-3 rounded w-3/5 animate-pulse" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)', animationDelay: `${i * 0.1 + 0.1}s` }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto"
@@ -358,7 +358,7 @@ function CallPrepModal({
 
         {/* Modal content */}
         <div ref={contentRef}>
-          {loading && <LoadingSkeleton />}
+          {loading && <CallPrepLoadingSkeleton />}
 
           {error && (
             <div className="p-6">
@@ -530,6 +530,7 @@ function DraftEmailModal({
   onRegenerate: () => void;
   lead: Lead;
 }) {
+  const mode = useMode();
   const [copied, setCopied] = useState(false);
   const [followUpOpen, setFollowUpOpen] = useState(false);
 
@@ -557,7 +558,7 @@ function DraftEmailModal({
         {/* Modal header */}
         <div
           className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
-          style={{ background: 'rgba(18, 17, 16, 0.95)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'color-mix(in srgb, var(--bg-base) 95%, transparent)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(8px)' }}
         >
           <div className="flex items-center gap-3">
             <div
@@ -724,7 +725,6 @@ function DraftEmailModal({
 /* ── Page component ───────────────────────────────────────────── */
 
 export default function LeadDetailPage() {
-  const mode = useMode();
   const { email } = useParams<{ email: string }>();
   const [lead, setLead] = useState<Lead | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -830,7 +830,7 @@ export default function LeadDetailPage() {
           setLinkedInError('unavailable');
         }
       }, 2000);
-    } catch (e) {
+    } catch {
       setLinkedInLoading(false);
       setLinkedInError('unavailable');
     }

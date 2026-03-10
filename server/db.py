@@ -121,8 +121,6 @@ def get_research_one(company_key: str) -> dict | None:
     return _row_to_dict(row) if row else None
 
 
-# --- Briefings ---
-
 # --- LinkedIn ---
 
 def get_linkedin_all() -> list[dict]:

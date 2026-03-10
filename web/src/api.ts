@@ -176,6 +176,12 @@ export interface CallPrep {
   expand_strategy: string;
   proposed_next_step: string;
   do_not_say: string[];
+  slide_title: string;
+  slide_challenges: Array<{ headline: string; subtitle: string }>;
+  slide_advantages: Array<{ headline: string; subtitle: string }>;
+  slide_phase1_label: string;
+  slide_phase2_label: string;
+  slide_phase3_label: string;
 }
 
 export const generateCallPrep = (email: string) =>
