@@ -1,0 +1,66 @@
+{
+  "marketplace": "Blackburn Command Center",
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "name": "gmail-pipeline",
+      "display_name": "Gmail Pipeline Scanner",
+      "description": "Automated Gmail inbox scanning via MCP — scores, researches, and generates daily briefings on autopilot",
+      "version": "1.0.0",
+      "author": "Parker Blackburn",
+      "path": "marketplace/gmail-pipeline/",
+      "code_path": "cowork/",
+      "status": "active",
+      "mcp_servers": ["gmail"],
+      "schedule": "daily 7:00 AM Pacific"
+    },
+    {
+      "name": "salesforce-crm-sync",
+      "display_name": "Salesforce CRM Sync",
+      "description": "Two-way lead sync between Command Center and Salesforce — auto-creates Leads with MEDDPICC fields mapped",
+      "version": "0.0.0",
+      "author": "Parker Blackburn",
+      "path": "marketplace/salesforce-crm-sync/",
+      "code_path": null,
+      "status": "coming-soon",
+      "mcp_servers": ["salesforce"],
+      "schedule": "real-time"
+    },
+    {
+      "name": "slack-notifications",
+      "display_name": "Slack Notifications",
+      "description": "Real-time Slack alerts for A-grade leads, competitive threats, score trend changes, and daily briefings",
+      "version": "0.0.0",
+      "author": "Parker Blackburn",
+      "path": "marketplace/slack-notifications/",
+      "code_path": null,
+      "status": "coming-soon",
+      "mcp_servers": ["slack"],
+      "schedule": "event-driven"
+    },
+    {
+      "name": "calendar-integration",
+      "display_name": "Calendar Integration",
+      "description": "Auto-schedule discovery calls based on lead priority — finds open slots and proposes meeting times",
+      "version": "0.0.0",
+      "author": "Parker Blackburn",
+      "path": "marketplace/calendar-integration/",
+      "code_path": null,
+      "status": "coming-soon",
+      "mcp_servers": ["google-calendar"],
+      "schedule": "on-demand"
+    },
+    {
+      "name": "competitive-intel",
+      "display_name": "Competitive Intelligence Auto-Update",
+      "description": "Continuous monitoring of competitor moves — updates battle cards and alerts on significant market shifts",
+      "version": "0.0.0",
+      "author": "Parker Blackburn",
+      "path": "marketplace/competitive-intel/",
+      "code_path": null,
+      "status": "coming-soon",
+      "mcp_servers": [],
+      "schedule": "weekly"
+    }
+  ]
+}

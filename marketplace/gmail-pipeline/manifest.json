@@ -1,0 +1,67 @@
+{
+  "name": "gmail-pipeline",
+  "display_name": "Gmail Pipeline Scanner",
+  "version": "1.0.0",
+  "description": "Automated Gmail inbox scanning via Claude Cowork MCP — feeds new emails through the Blackburn Command Center pipeline (intake, research, briefing) on a daily schedule.",
+  "author": "Parker Blackburn",
+  "code_path": "../../cowork/",
+  "entry_point": "gmail_scanner.py",
+  "skill_file": "../../cowork/SKILL.md",
+  "commands": [
+    "update pipeline",
+    "scan inbox",
+    "generate briefing",
+    "prepare for call with [company]",
+    "draft outreach to [company]"
+  ],
+  "schedule": {
+    "frequency": "daily",
+    "time": "07:00",
+    "timezone": "America/Los_Angeles",
+    "command": "update pipeline"
+  },
+  "dependencies": {
+    "python": [
+      "anthropic",
+      "pydantic",
+      "python-dotenv",
+      "python-pptx",
+      "fpdf2"
+    ],
+    "mcp_servers": [
+      {
+        "name": "gmail",
+        "required": true,
+        "permissions": ["read"],
+        "description": "Gmail inbox read access for scanning inbound emails"
+      },
+      {
+        "name": "sqlite",
+        "required": false,
+        "permissions": ["read"],
+        "description": "Optional direct DB inspection from Cowork"
+      }
+    ]
+  },
+  "env_vars": {
+    "required": [
+      {
+        "name": "ANTHROPIC_API_KEY",
+        "description": "API key for Claude (scoring, research, briefing agents)"
+      }
+    ],
+    "optional": [
+      {
+        "name": "TRIAGE_DB",
+        "default": "triage.db",
+        "description": "Path to SQLite database"
+      },
+      {
+        "name": "GITLAB_MODE",
+        "default": "false",
+        "description": "Set to 'true' for GitLab product context"
+      }
+    ]
+  },
+  "supports_dual_mode": true
+}

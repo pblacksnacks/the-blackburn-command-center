@@ -141,8 +141,32 @@ Grades: A = 80-100, B = 60-79, C = 40-59, D = 0-39
 │       ├── DepartmentHeatMap.tsx
 │       ├── PipelineRunner.tsx
 │       └── Layout.tsx
+├── cowork/
+│   ├── gmail_scanner.py             # Cowork pipeline bridge (Gmail MCP → agents)
+│   ├── SKILL.md                     # Cowork skill definition
+│   └── README.md                    # Plugin docs
+├── marketplace/
+│   ├── plugins.json                 # Plugin registry
+│   ├── README.md                    # Marketplace docs
+│   └── gmail-pipeline/             # First published plugin
+│       ├── manifest.json
+│       └── INSTALL.md
 └── tests/                           # 35 tests passing
 ```
+
+## Marketplace
+
+The [Blackburn Marketplace](marketplace/) is a plugin ecosystem for extending the Command Center with automation, integrations, and new workflows.
+
+| Plugin | Status | Description |
+|--------|--------|-------------|
+| [Gmail Pipeline](marketplace/gmail-pipeline/) | Active | Automated inbox scanning via Cowork — daily scoring, research, and briefings |
+| Salesforce CRM Sync | Coming Soon | Two-way lead sync with Salesforce |
+| Slack Notifications | Coming Soon | Real-time alerts for A-grade leads and competitive threats |
+| Calendar Integration | Coming Soon | Auto-schedule discovery calls based on lead priority |
+| Competitive Intel Auto-Update | Coming Soon | Continuous competitor monitoring and battle card updates |
+
+See [`marketplace/README.md`](marketplace/README.md) for installation guides, the plugin registry, and submission template.
 
 ## How It Was Built
 
