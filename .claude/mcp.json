@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "blackburn-marketplace": {
+      "command": "python",
+      "args": ["cowork/gmail_scanner.py"],
+      "cwd": "."
+    }
+  }
+}
